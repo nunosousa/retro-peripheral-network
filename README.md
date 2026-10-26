@@ -3,6 +3,9 @@ A universal control interface for retro consoles, translating modern input devic
 
 ## Architecture drafts
 
+See the [development process guide](docs/DEVELOPMENT-GUIDE.md) for the path from
+reviewing these drafts to a measured two-player prototype and later expansion.
+
 The project is in architecture exploration. All specifications are **Revision
 0.1, Draft**; the proposed hardware and protocol are not implementation-ready.
 
