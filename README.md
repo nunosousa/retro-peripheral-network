@@ -13,6 +13,7 @@ The project is in architecture exploration. All specifications are **Revision
 |---|---|---|
 | [System Requirements Specification](docs/SRS.md) | RPN-SRS | Required behaviour and verification criteria |
 | [Interface Control Document](docs/ICD.md) | RPN-ICD | Electrical, physical and hardware boundaries |
+| [Electrical Interface Capability Specification](docs/EIC.md) | RPN-EIC | Console signal domains, channel counts and adapter resource baseline |
 | [Software Architecture Description](docs/SAD.md) | RPN-SAD | Components, scheduling, ownership and lifecycle |
 | [Protocol Specification](docs/PS.md) | RPN-PS | Provisional shared-bus wire protocol |
 

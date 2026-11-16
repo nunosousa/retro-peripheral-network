@@ -6,7 +6,7 @@
 | Revision | 0.1 |
 | Status | Draft - architecture exploration; not a validated baseline |
 | Date | 2026-10-23 |
-| Companion documents | [RPN-ICD](ICD.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
+| Companion documents | [RPN-ICD](ICD.md), [RPN-EIC](EIC.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
 |---|---|
