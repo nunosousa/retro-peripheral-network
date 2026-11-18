@@ -12,6 +12,7 @@
 |---|---|
 | 0.1 | Initial repository draft: two-player architecture, ownership safety, hardware constraints and provisional network profile. |
 | 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform requirement (HW-005, HW-001 retired), glossary, scope/latency/switch-time/clock/identity/neutralisation/HID requirements, user-interaction and compliance section, verification matrix updates; RPN-EIC removed from the companion list (deprecated). |
+| 0.1 (2026-11-18, owner decision) | Bus rate raised to 2 Mbit/s and typical trunk set to less than 5 m (SRS-NET-003, SRS-SYS-008); SRS-UI-004 constrained to lowest priority without effect on input timing; section 10 points to the peripheral catalogue SAD-MAP-003. |
 
 ## 1. Purpose and interpretation
 
@@ -75,7 +76,7 @@ British "-ise" forms.
 | SRS-SYS-005 | D | Each supported console profile shall specify electrical compatibility, supported peripheral modes, mapping limitations, accessory behaviour and validation evidence before use on original hardware. |
 | SRS-SYS-006 | D | An adapter shall represent one console instance and its supported controller ports. Multiple connectors or processors may be required inside that adapter. |
 | SRS-SYS-007 | P | The initial network profile shall support one hub and up to 31 addressed adapters, two routed player records on one owner and at most two active routes (endpoints). This is an address/resource bound, not a validated cable or node-loading claim. |
-| SRS-SYS-008 | P | The typical installation shall be up to 10 adapters on a trunk of up to 15 m; the first harness calculation (`ICD-NET-002`) shall use these figures. Larger installations up to the SRS-SYS-007 address bound require their own measured qualification. |
+| SRS-SYS-008 | P | The typical installation shall be up to 10 adapters on a trunk of less than 5 m; the first harness calculation (`ICD-NET-002`) shall use these figures. Larger installations up to the SRS-SYS-007 address bound require their own measured qualification. |
 | SRS-SYS-009 | D | An adapter shall emulate at most the two console ports that can be routed (SRS-SYS-002/007). Further physical ports of a console are left unpopulated or unconnected, so the console sees no controller there; four-port and multitap support is Future (`SAD-F-001`). |
 
 Two simultaneous players is not a promise of multitap emulation, arbitrary
@@ -137,7 +138,7 @@ by a bus lease; hardware watchdogs and validation are also required.
 |---|---|---|
 | SRS-NET-001 | C | The shared network shall remain console-independent and support discovery, addressing, versioning, capabilities, input, feedback, status, diagnostics, configuration, storage, update and controlled reset through advertised operations. |
 | SRS-NET-002 | D | A node shall advertise only implemented services and peripheral combinations. Unsupported services shall return explicit errors without side effects. |
-| SRS-NET-003 | P | The initial bus shall use one master, half-duplex RS-485 at 1 Mbit/s as defined provisionally by `ICD-NET-001` and RPN-PS. Only the addressed node shall respond to a request. |
+| SRS-NET-003 | P | The initial bus shall use one master, half-duplex RS-485 at 2 Mbit/s as defined provisionally by `ICD-NET-001` and RPN-PS. Only the addressed node shall respond to a request. |
 | SRS-NET-004 | D | Commissioning shall prevent simultaneous replies by unassigned nodes; bus collision detection shall not be assumed reliable. |
 | SRS-NET-005 | D | Frames shall have length bounds, integrity checking, source/destination validation and bounded parser recovery. State-changing operations shall have defined retry and duplicate behaviour. |
 | SRS-NET-006 | D | Bulk storage, configuration and update operations shall not starve input renewal or violate local console timing. |
@@ -199,7 +200,7 @@ the lease limit. Normal operation and fault-containment limits must both be test
 | SRS-UI-001 | P | The hub shall provide local physical means, with no external computer required, to select the console owner and to see the owner, armed/neutral state and any persistent fault. For the first prototype a physical selector and indicators are sufficient. |
 | SRS-UI-002 | P | The hub shall let the user assign the two players to the routed ports. The first prototype may use a fixed player 0 -> port 0, player 1 -> port 1 assignment. |
 | SRS-UI-003 | P | Initial draft intent: the hub should have a small display showing the active owner, routes and button mapping using the console's own button names. Those names are adapter-supplied metadata (SAD-MAP-001); the hub core keeps generic positions only (SRS-IN-001). |
-| SRS-UI-004 | F | Showing the Dreamcast VMU screen on the hub display. It needs a new service for adapter-captured VMU display data, which is not in PS 0.1 (`SAD-F-006`); generic storage does not imply it (SRS-STO-001). |
+| SRS-UI-004 | F | Showing the Dreamcast VMU screen on the hub display. It needs a new, optional display service for adapter-captured display data, proposed in `PS-SVC-DISPLAY` and not part of PS 0.1 (`SAD-F-006`). It shall run at the lowest bus priority and shall not change INPUT timing, SRS-PERF-001/005 or the lease arithmetic; generic storage does not imply it (SRS-STO-001). |
 | SRS-SUP-001 | O | Field supportability beyond bounded counters (persistent logs, support export, diagnostics access) is not decided. |
 | SRS-ENV-001 | O | EMC, ESD, regulatory and electrical-safety standards applicable to the hub, adapters, supplies and harness are not selected. Each ICD design review shall list the candidate standards. |
 | SRS-ENV-002 | O | Operating environment (temperature, humidity, installation location) is not decided. |
@@ -240,7 +241,9 @@ SRS-UPD-004) have no verification entry until they are decided or scheduled.
 See the authoritative [SAD decision register](SAD.md#3-decision-register).
 Bluetooth, actual wheel drivers, multitaps and four-port consoles, secure remote
 administration, network firmware update and additional simultaneous players are
-future possibilities. Console accessory
+future possibilities (pointing, keyboard, motion, audio and rich-haptics
+peripherals, compound accessories and oversized controllers are catalogued in
+`SAD-MAP-003`). Console accessory
 coverage is selected per profile; VMU display/audio/clock and Xbox authentication
 or other compatibility constraints must not be assumed solved by generic storage.
 

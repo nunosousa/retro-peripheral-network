@@ -994,6 +994,12 @@ Dreamcast drive details need approved supplements and primary Maple
 documentation). Deferred content has register entries: `SAD-F-004`, `SAD-F-005`,
 `SAD-F-006` and the four-port part of `SAD-F-001`.
 
+Post-cycle owner decision (2026-11-18): the bus line rate was raised from 1 to
+2 Mbit/s with a trunk under 5 m. The timing figures quoted in the resolutions of
+RR-001-016 and RR-001-017 (and the review's section 3 exchange arithmetic) are
+for 1 Mbit/s and are superseded by the PS-TIMING tables; the review record is
+otherwise left as written.
+
 New class-P values introduced by the corrections for the owner to confirm:
 SRS-SYS-008 (10 adapters, 15 m), SRS-PERF-004 (16.7 ms), SRS-PERF-005 (12 ms),
 SRS-OWN-012 (500 ms), SRS-NET-010 (+/-100 ppm) and the +/-0.5 % baud budget,

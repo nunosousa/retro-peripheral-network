@@ -12,6 +12,7 @@
 |---|---|
 | 0.1 | Initial bounded framing, commissioning, service schemas, two-player input and safe ownership transactions. |
 | 0.1 (2026-11-18) | REVIEW-001 correction cycle: per-opcode response timeouts and cycle budget, feedback cadence, commissioning retry and ID rules, persisted address, hardware UID/RNG provisioning, CAPS kind 4 (`neutralisation_bound_us`) and bounded CAPS indexes, STATUS lifecycle/counter corrections, idle-identity check, Update marked Future. |
+| 0.1 (2026-11-18, owner decision) | Line rate raised to 2 Mbit/s (trunk under 5 m): PS-TIMING bit time, timeout classes (short up to 140 wire bytes at 1.0 ms, long 1.5 ms), cycle budget and latency bounds recomputed; display service recorded as a proposed Future service (`PS-SVC-DISPLAY`) at lowest priority with adapter-declared chunk size. |
 
 ## 1. PS-PROFILE: scope and conventions
 
@@ -91,7 +92,8 @@ maximum encoded length 219, maximum wire frame including delimiter 220 bytes.
 Parser storage is bounded: discard until the next delimiter after oversize,
 bad COBS or timeout. A delimiter with no preceding encoded bytes is ignored.
 A partial encoded frame older than 3 ms since its first byte is discarded;
-at 1 Mbit/s even a maximum valid frame fits inside that interval. Noise with
+at 2 Mbit/s a maximum valid frame (1.10 ms) fits inside that interval with
+margin. Noise with
 no delimiter cannot grow buffers.
 
 Bad COBS/CRC, impossible decoded length, wrong destination or invalid
@@ -210,15 +212,16 @@ the established session's transaction cache/high-water mark.
 
 | Quantity | Provisional bound |
 |---|---|
-| Bit / UART byte | 1 us / 10 us (start + 8 data + stop) |
+| Bit / UART byte | 0.5 us / 5 us at 2 Mbit/s (start + 8 data + stop) |
 | Request transmitter disable | Within 20 us after last stop bit |
 | Earliest response first start bit | 50 us after request last stop bit |
 | Latest response first start bit | 250 us after request last stop bit (provisional; processing budget open, `SAD-O-009`) |
-| Response timeout | Per opcode, from the request last stop bit: 1.0 ms (short class) or 3.0 ms (long class); see below |
+| Response timeout | Per opcode, from the request last stop bit: 1.0 ms (short class) or 1.5 ms (long class); see below |
 | Bus idle guard after response or timeout | At least 50 us; sender driver disabled within 20 us of its last stop bit |
 | Isolated transceiver (`SAD-P-010`) | Propagation, driver-enable and driver-disable delays of the isolated interface count inside the 20 us disable allowance and 50 us earliest-response gap and shall be measured (`ICD-VER-020`) |
 | Armed input cadence | One complete INPUT exchange each 5 ms |
 | Feedback poll cadence | One FEEDBACK_POLL to the owner every 10 ms (every second cycle) while armed |
+| Display poll (Future, `PS-SVC-DISPLAY`) | Lowest priority; at most one exchange per cycle, never in a cycle where its timeout path would end after the next INPUT slot |
 | Adapter lease | 100 ms since acceptance of ARM or newer complete INPUT |
 | Local neutralisation delay | At most the adapter's declared `neutralisation_bound_us` (CAPS kind 4), which shall not exceed 1 ms for a conforming profile |
 | Hub reboot / uncertain revoke guard | 110 ms since latest possible renewal acceptance; full 110 ms at boot; valid while every declared bound is at most 1 ms |
@@ -227,9 +230,14 @@ the established session's transaction cache/high-water mark.
 
 Adapters shall not start late replies. If an operation cannot complete quickly,
 reply BUSY or return an accepted token; do not transmit after the response window.
-A complete maximum reply needs 2.20 ms plus at most 0.25 ms start delay.
+A complete maximum reply needs 1.10 ms plus at most 0.25 ms start delay.
 No UART flow control or unbounded inter-byte pauses
 are allowed; a frame is transmitted continuously.
+
+The turnaround, response-start and idle-guard allowances above were chosen for
+1 Mbit/s and are kept as absolute times at 2 Mbit/s; they are now 40 to 100 bit
+times, so transceiver and isolator delays are a larger share of them and shall be
+re-measured at the line rate (`ICD-VER-017`, `ICD-VER-020`).
 
 ### Per-opcode response timeout
 
@@ -238,29 +246,31 @@ margin (at least 0.05 ms)`, rounded up to a class. It is not one global value.
 
 | Class | Condition | Timeout | Opcodes |
 |---|---|---|---|
-| Short | Maximum response at most 70 wire bytes (0.70 ms) | 1.0 ms | Every opcode except STORAGE READ: DISCOVER_UID, ASSIGN_UID, HELLO, CAPS, STATUS, REVOKE, RESET, ROUTES, ARM, INPUT, FEEDBACK_POLL, MAINTENANCE, STORAGE (other subcommands), CONFIG, DIAGNOSTICS, UPDATE |
-| Long | Maximum response up to 220 wire bytes (2.20 ms) | 3.0 ms | STORAGE READ |
+| Short | Maximum response at most 140 wire bytes (0.70 ms) | 1.0 ms | Every opcode except STORAGE READ: DISCOVER_UID, ASSIGN_UID, HELLO, CAPS, STATUS, REVOKE, RESET, ROUTES, ARM, INPUT, FEEDBACK_POLL, MAINTENANCE, STORAGE (other subcommands), CONFIG, DIAGNOSTICS, UPDATE, and the proposed DISPLAY_POLL |
+| Long | Maximum response up to 220 wire bytes (1.10 ms) | 1.5 ms | STORAGE READ |
 
 A new opcode shall declare its class from its maximum response size.
 
 ### Cycle budget
 
 Exchange time is `request wire + 0.25 + response wire + 0.05` on success and
-`request wire + timeout + 0.05` on timeout (1 Mbit/s, 10 us per wire byte; wire
+`request wire + timeout + 0.05` on timeout (2 Mbit/s, 5 us per wire byte; wire
 bytes are raw bytes plus COBS overhead plus the delimiter).
 
 | Exchange | Request / response wire bytes | Success (ms) | Timeout path (ms) |
 |---|---|---:|---:|
-| INPUT (two players) | 97 / 43 | 1.70 | 2.02 |
-| FEEDBACK_POLL | 32 / 46 | 1.08 | 1.37 |
-| STATUS | 28 / 52 | 1.10 | 1.33 |
-| STORAGE/CONFIG/UPDATE WRITE, maximum chunk | 220 / 37 | 2.87 | 3.25 |
-| STORAGE READ, maximum chunk | 39 / 220 | 2.89 | 3.44 |
+| INPUT (two players) | 97 / 43 | 1.00 | 1.54 |
+| FEEDBACK_POLL | 32 / 46 | 0.69 | 1.21 |
+| STATUS | 28 / 52 | 0.70 | 1.19 |
+| STORAGE/CONFIG/UPDATE WRITE, maximum chunk | 220 / 37 | 1.59 | 2.15 |
+| STORAGE READ, maximum chunk | 39 / 220 | 1.60 | 1.75 |
+| DISPLAY_POLL, 96-byte chunk (Future) | 34 / 130 | 1.12 | 1.22 |
+| DISPLAY_POLL, nothing new (Future) | 34 / 29 | 0.62 | 1.22 |
 
 | 5 ms cycle | Content | All succeed (ms) | All time out (ms) | Slack in the worst case (ms) |
 |---|---|---:|---:|---:|
-| Feedback cycle (every 10 ms) | INPUT + FEEDBACK_POLL + one STATUS | 3.88 | 4.72 | 0.28 |
-| Other cycle | INPUT + one STATUS | 2.80 | 3.35 | 1.65 |
+| Feedback cycle (every 10 ms) | INPUT + FEEDBACK_POLL + one STATUS | 2.39 | 3.94 | 1.06 |
+| Other cycle | INPUT + one STATUS | 1.70 | 2.73 | 2.28 |
 
 Every combination of success and timeout in these cycles ends inside 5 ms, so
 a timeout of any one exchange cannot push the INPUT of the next cycle late.
@@ -271,24 +281,32 @@ Scheduler rules:
 
 - A non-input exchange is admitted only if its worst-case timeout path ends
   before the next reserved INPUT slot, evaluated from the actual end of the
-  preceding exchange. A maximum-size WRITE (3.25 ms) is therefore admitted only
-  directly after a successful INPUT (1.70 + 3.25 = 4.95 ms), and the scheduler
-  shrinks or defers management chunks that do not fit.
+  preceding exchange. A maximum-size WRITE (2.15 ms) is therefore admitted after
+  a successful INPUT (1.00 + 2.15 = 3.15 ms) and after INPUT, FEEDBACK_POLL and
+  STATUS all succeed (4.54 ms), but not after all three time out (6.09 ms); the
+  scheduler shrinks or defers management chunks that do not fit.
+- Priority order within a cycle: INPUT, then FEEDBACK_POLL and STATUS, then
+  management chunks, then display (lowest). A display exchange never delays or
+  replaces an INPUT, FEEDBACK_POLL or STATUS that is due, and is admitted only
+  by the rule above. Worst case a display exchange after INPUT, FEEDBACK_POLL and
+  STATUS all succeed ends at 3.61 ms; after all three time out it would end at
+  5.16 ms and is therefore skipped.
 - INPUT is never retried. A lost or timed-out INPUT is replaced by the next
   cycle's INPUT with the newest sample and a new transaction ID.
 - Other retries are separate scheduled slots; never queue several retries ahead
   of a newer input deadline.
 
 Two-player INPUT uses 69 payload bytes: 95 raw bytes, at most 97 wire bytes,
-0.97 ms. Its ACK has 15 payload bytes: 41 raw, at most 43 wire bytes, 0.43 ms.
-A successful exchange occupies at most `0.97 + 0.25 + 0.43 + 0.05 = 1.70 ms`, or
-34 % of the 5 ms cycle; with its 1.0 ms timeout it occupies `0.97 + 1.0 + 0.05 =
-2.02 ms`.
+0.485 ms. Its ACK has 15 payload bytes: 41 raw, at most 43 wire bytes, 0.215 ms.
+A successful exchange occupies at most `0.485 + 0.25 + 0.215 + 0.05 = 1.00 ms`, or
+20 % of the 5 ms cycle; with its 1.0 ms timeout it occupies `0.485 + 1.0 + 0.05 =
+1.54 ms`.
 
 Latency: a sample that becomes available just after a scheduling boundary waits
-at most 5 ms, then needs at most `0.97 + 0.25 = 1.22 ms` to be installed, so at
-most 6.22 ms in the normal profile (SRS-PERF-001, 10 ms). One lost INPUT adds one
-cadence, giving at most 11.22 ms (SRS-PERF-005, 12 ms). The end-to-end target of
+at most 5 ms, then needs at most `0.485 + 0.25 = 0.735 ms` to be installed, so at
+most 5.74 ms in the normal profile (SRS-PERF-001, 10 ms). One lost INPUT adds one
+cadence, giving at most 10.74 ms (SRS-PERF-005, 12 ms). The 5 ms cadence, not the
+line rate, dominates this figure. The end-to-end target of
 SRS-PERF-004 still requires measured hub processing and adapter installation, not
 only this serialization calculation.
 
@@ -740,6 +758,59 @@ Counters are saturating and read-only in this profile:
 Counters other than watchdog resets may reset on boot; persistence of the
 watchdog counter is implementation-dependent and shall be documented.
 
+### PS-SVC-DISPLAY (proposed, Future; not part of profile 0.1)
+
+Supports `SRS-UI-004` (hub display of the Dreamcast VMU screen, `SAD-F-006`).
+Nothing here is implementable in minor 1: the service bit (bits 6 and up are zero
+in 0.1) and the opcode value are assigned only when a minor that includes this
+service is approved (section 9). The design decisions are recorded now so that the
+bus budget in `PS-TIMING` can be shown to hold.
+
+- **Source of data.** The adapter's console driver captures the console's writes
+  to the emulated display into a local frame buffer. This is local state; the
+  console never waits on the bus (SAD-D-003). The service transports a
+  monochrome frame and carries no console command.
+- **Descriptor.** A proposed CAPS kind 5 entry per display:
+  `port:u8, width:u8, height:u8, format:u8, chunk_bytes:u8`. Format 0 is one bit
+  per pixel, row-major, top row first, most significant bit leftmost, each row
+  padded to whole bytes. `frame_bytes` is at most 512 and `chunk_bytes` is
+  1..96. A VMU is 48 x 32, `frame_bytes` 192, `chunk_bytes` 96 (two chunks);
+  those VMU values are to be verified against Maple documentation.
+- **Chunk size.** Declared by the adapter, not negotiated per request, so the hub
+  needs only `ceil(frame_bytes / chunk_bytes)`. 96 is the default and the
+  maximum: smaller chunks cost more total bus time (four 48-byte chunks take
+  3.52 ms per frame against 2.24 ms for two 96-byte chunks, because the fixed
+  per-exchange cost repeats) and do not shorten the timeout path, which is set by
+  the response class. A smaller value is for adapters short of buffer or DMA
+  resources.
+- **DISPLAY_POLL request** `port:u8, seq:u32, chunk:u8`. For chunk 0, `seq` is the
+  sequence of the last complete frame the hub holds (0 for none). For chunk 1
+  and above, `seq` is the sequence returned with chunk 0 of the frame being
+  assembled.
+- **OK response** `present:u8`, then if present is 1:
+  `frame_seq:u32, chunk:u8, data[n]`. `n` is `chunk_bytes`, or the remainder for
+  the last chunk. The maximum response is 102 payload bytes, 130 wire bytes, in
+  the short timeout class.
+- **Adapter behaviour.** For chunk 0 it returns present 0 when no frame newer
+  than `seq` exists. Otherwise it latches a snapshot of the current frame,
+  assigns it a nonzero `frame_seq` that increases (no wrap within a boot ID) and
+  returns chunk 0. Later chunks are served from the latched snapshot, so a
+  frame is never torn. A chunk request whose `seq` does not match the latched
+  snapshot (for example after revoke or reset) returns present 0 and the hub
+  restarts at chunk 0. The latest frame wins: there is no queue, no
+  acknowledgement and no replay.
+- **State and lease.** Accepted in CONFIGURED, ARMED_NEUTRAL and LIVE, else
+  BAD_STATE. It never renews the lease and carries no control data.
+- **Hub behaviour.** Poll only the owner, at most 10 times per second per port,
+  at the lowest priority in the cycle (`PS-TIMING` scheduler rules); on a
+  revoke, session change or device loss drop the held frame and reset `seq` to 0.
+- **Budget (at 2 Mbit/s).** A 96-byte chunk exchange takes 1.12 ms on success
+  and 1.22 ms on the timeout path; a poll with nothing new takes 0.62 ms.
+  Two ports at 10 frames per second use about 4.5 % of bus time, and two ports
+  of idle polls at 10 Hz about 1.2 %. Display exchanges are admitted only in the
+  slack of a cycle, so INPUT timing, the 5.74 ms and 10.74 ms latency bounds and
+  the lease arithmetic are unchanged.
+
 ## 9. Versioning, validation and unresolved work
 
 Unknown opcode/service returns UNSUPPORTED. New incompatible frame/schema
@@ -760,9 +831,10 @@ Before firmware interoperability is claimed, tests shall include:
   address needing commissioning after reset.
 - Storage/config power-fail, ambiguous COMMIT, token query and failed recovery.
 - Feedback ack retries, stale events, coalescing, 10 ms poll cadence and physical-device expiry.
-- Per-opcode timeouts, one lost INPUT replaced by the next cycle's sample (no retry), and
+- Per-opcode timeouts at 2 Mbit/s, one lost INPUT replaced by the next cycle's sample (no retry), and
   every success/timeout combination of the cycle budget finishing inside 5 ms.
 - CAPS kind 4 value and the hub's derived guards; CAPS index bounds.
+- Display service (only once a minor including it exists): 96-byte chunks and a short final chunk, a frame snapshot latched at chunk 0 and never torn, a mismatched `seq` restarting at chunk 0, the 10 per second poll cap, and INPUT latency and jitter unchanged with display polling active.
 - Timing captures at maximum supported bus/USB/console load.
 
 Open gates: physical layer approval, console-specific peripheral descriptors

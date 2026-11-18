@@ -12,6 +12,7 @@
 |---|---|
 | 0.1 | Initial interface boundaries, provisional RS-485 profile and console electrical qualification gates. |
 | 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform text and datasheet/errata register; hub USB topology and hub baseline (ICD-HUB-001); isolated-bus and external-power default; profile-contract fields; console capability baseline (ICD-CAP) and verification entries (ICD-VER) merged from the deprecated EIC; source register (ICD-REF-001); clock/baud budget; installation figures. |
+| 0.1 (2026-11-18, owner decision) | UART rate raised to 2 Mbit/s and trunk length under 5 m: DMA requirement, transceiver/isolator rating, termination by measurement, baud-divider note, ICD-VER-020 criterion. |
 
 Classification and normative language follow [RPN-SRS section 1](SRS.md#1-purpose-and-interpretation).
 No connector pinout or console voltage table in this draft is approved for wiring.
@@ -62,15 +63,15 @@ Console and hub processors are RP2350 family parts (`SRS-HW-005`).
 | Property | Revision 0.1 proposal or constraint |
 |---|---|
 | Signalling | Half-duplex, two-wire RS-485 differential signalling |
-| UART | 1,000,000 bit/s, 8 data bits, no parity, 1 stop bit; idle mark |
+| UART | 2,000,000 bit/s (5 us per byte), 8 data bits, no parity, 1 stop bit; idle mark. At 200 kbyte/s reception and transmission shall be DMA-driven; per-byte interrupt service is not acceptable on a node that also runs a console timing engine |
 | Participants | One hub master, addressed adapters; no unsolicited adapter transmit |
 | Topology | Linear trunk with short stubs, no passive star or ring |
-| Termination | One resistor at each physical trunk end; nominal 120 ohm only if matched to selected cable |
+| Termination | One resistor at each physical trunk end; nominal 120 ohm only if matched to selected cable. Whether termination is needed on a trunk under 5 m at 2 Mbit/s is decided by measurement; until then the provision for it stays |
 | Bias | At most one engineered idle-bias network, normally at the hub; resistor values derived from transceiver thresholds, termination and supply tolerances |
-| Transceiver | MCU-compatible logic interface; receiver idle/fault behaviour and driver-disable timing qualified for chosen part |
+| Transceiver | MCU-compatible logic interface; rated with margin above 2 Mbit/s including its isolator (propagation delay, pulse-width distortion and skew budgeted against a 500 ns bit); receiver idle/fault behaviour and driver-disable timing qualified for chosen part |
 | Ground reference | Default (`SAD-P-010`): an isolated bus interface at every adapter, using an isolated transceiver and isolated power, so adapter and console grounds are not joined through the bus; a non-isolated reference needs an approved design for the actual deployment |
-| Clock and baud error | Every node derives the baud rate from a crystal-derived clock of at most +/-100 ppm (`SRS-NET-010`); internal RC oscillators are not used for the bus. Proposed budget: total baud error per node (oscillator plus divider granularity) at most +/-0.5 % (value to be confirmed); the divider achievable at the chosen RP2350 system clock, the sampling margin with RS-485 and isolator distortion, and the resulting margin shall be calculated and measured (`ICD-VER-017`) |
-| Cable length, stub length, node loading | Open; first harness calculation for up to 10 adapters on a trunk of up to 15 m (`SRS-SYS-008`); shall be measured with selected cable and transceivers at 1 Mbit/s |
+| Clock and baud error | Every node derives the baud rate from a crystal-derived clock of at most +/-100 ppm (`SRS-NET-010`); internal RC oscillators are not used for the bus. Proposed budget: total baud error per node (oscillator plus divider granularity) at most +/-0.5 % (value to be confirmed); the divider achievable at the chosen RP2350 system clock (for example, with a 150 MHz peripheral clock a PL011-type UART needs a divisor of 4.6875 for 2 Mbit/s, which is exactly representable; to be confirmed against the datasheet and the real clock), the sampling margin with RS-485 and isolator distortion (isolator pulse-width distortion is a larger share of a 500 ns bit than of a 1 us bit), and the resulting margin shall be calculated and measured (`ICD-VER-017`) |
+| Cable length, stub length, node loading | Open; first harness calculation for up to 10 adapters on a trunk of less than 5 m (`SRS-SYS-008`); shall be measured with selected cable and transceivers at 2 Mbit/s |
 | EMC/ESD/hot-plug protection | Required design review; component values and ratings open |
 
 The 31-address profile is a protocol limit, not a statement about transceiver
@@ -407,7 +408,7 @@ one-to-one onto ICD-VER-nnn for 001..014 and are retired.
 | ICD-VER-017 | SRS-NET-010, ICD-NET-001 | Baud error and sampling margin | Measured per-node error within the budget, sampling margin positive with isolator and transceiver distortion, no framing errors in 10 minutes at full cadence |
 | ICD-VER-018 | ICD-USB-001, SAD-P-009 | Hub two-device acceptance | Two HID devices, one low-speed and one full-speed, enumerate through the hub IC, report at their descriptor intervals for 10 minutes with no missed report (no sequence gap over twice the interval) and no enumeration loss on hot-plug |
 | ICD-VER-019 | ICD-HUB-001 | Hub VBUS limiting | Each downstream port limits and reports overcurrent at its configured limit and recovers without disturbing the other port |
-| ICD-VER-020 | ICD-NET-001, PS-TIMING | Isolated bus delays | Isolator propagation plus driver enable/disable delay fit the 20 us disable allowance and 50 us earliest-response gap with margin |
+| ICD-VER-020 | ICD-NET-001, PS-TIMING | Isolated bus delays at 2 Mbit/s | Isolator propagation plus driver enable/disable delay fit the 20 us disable allowance and 50 us earliest-response gap with margin, and isolator pulse-width distortion leaves a positive sampling margin on a 500 ns bit |
 
 ## 11. Registers
 

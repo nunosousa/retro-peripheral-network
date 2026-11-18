@@ -12,6 +12,8 @@
 |---|---|
 | 0.1 | Initial architecture review, decision register, safe two-player ownership, framework boundaries and scheduling model. |
 | 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform, document-authority, hardware-isolation, port-scope and USB decisions registered; persistent addresses, per-profile neutralisation bound, multi-processor adapters, controller-coverage matrix, first-console comparison, scheduler admission rule and feedback cadence added. |
+| 0.1 (2026-11-18, owner decision) | Line rate 2 Mbit/s (trunk under 5 m) in SAD-P-001 and SAD-R-009; display lowest-priority scheduling rule and SAD-F-006 design intent; full duplex considered and not adopted. |
+| 0.1 (2026-11-18, owner decision) | Peripherals outside the generic model catalogued in SAD-MAP-003; Future register entries SAD-F-007 to SAD-F-014 (classification awaits owner confirmation). |
 
 ## 1. Architecture intent
 
@@ -36,7 +38,7 @@ No source firmware exists in this repository yet.
 | SAD-R-006 | A network storage service cannot satisfy console accessory deadlines | Local authoritative storage; export/import only in exclusive maintenance in this profile |
 | SAD-R-007 | Service-oriented architecture can imply unnecessary RPC or a plug-in framework | Fixed bounded opcode groups plus a service bitmap and descriptors; no dynamic broker or runtime plug-ins |
 | SAD-R-008 | Platform choice does not by itself establish USB-host capacity or flash-time isolation | RP2350 family is mandated (`SAD-D-004`); the single native USB controller is extended by a hub IC (`SAD-P-009`); prove flash/console coexistence and the per-profile resource margin |
-| SAD-R-009 | 1 Mbit/s sounds ample but management replies and turnaround consume deadlines | Two-player exchange budget and deadline-based bulk admission in PS-TIMING |
+| SAD-R-009 | A 2 Mbit/s line rate sounds ample but management replies and turnaround consume deadlines | Two-player exchange budget and deadline-based bulk admission in PS-TIMING |
 | SAD-R-010 | Emulating accessory storage is not emulating the complete accessory | Explicit supported peripheral functions; no implied VMU screen/clock or complete Pak coverage |
 | SAD-R-011 | A shared bus may join console grounds and supplies unintentionally | ICD power/isolation gates; no approved connector or common-ground deployment yet |
 | SAD-R-012 | CRC, version negotiation and firmware recovery do not provide authentication | Trusted local bus assumption, physical update enable, security boundaries stated explicitly |
@@ -61,7 +63,7 @@ design. Numeric protocol choices remain provisional as a group.
 | SAD-D-006 | D | No console-facing signal relies on MCU 5 V tolerance or internal pulls; voltage domain and drive type are fixed by each console connector module, identified to firmware, and firmware refuses a mismatching profile (SRS-HW-006, ICD-CAP-003/004) | ICD-VER-001..006, ICD-VER-015 |
 | SAD-D-007 | D | Every profile declares a default idle peripheral identity and whether live identity change is allowed; the route selects mapping, not identity (SRS-IN-011) | ICD-CON-001 supplement review |
 | SAD-D-008 | D | Every profile declares `neutralisation_bound_us` (CAPS kind 4); hub drain and uncertain-transfer guards derive from the maximum over enrolled adapters; a profile that cannot meet the 1 ms global bound is not approved with the provisional timing (SRS-OWN-013) | ICD-VER-016, PS-TIMING |
-| SAD-P-001 | P | RS-485, 1 Mbit/s, one master and up to 31 addresses | Harness, loading and scheduling qualification |
+| SAD-P-001 | P | RS-485, 2 Mbit/s, one master, up to 31 addresses, typical trunk under 5 m (owner decision; half-duplex retained: full duplex would not shorten the 5 ms cadence that dominates latency, needs a second isolated pair per node and breaks the one-outstanding-request model) | Harness, loading, isolator delay and scheduling qualification at 2 Mbit/s (`ICD-VER-017`, `ICD-VER-020`) |
 | SAD-P-002 | P | Compact fixed services over COBS/CRC framing, 192-byte payload bound | Codec and interop tests; revise together with PS |
 | SAD-P-003 | P | Commission unassigned nodes by scanned/manually supplied UID; no broadcast contention algorithm. The 128-bit UID is a vendor-defined value held in locked OTP on production RP2350 parts (prototype boards may use a documented non-OTP method, marked as prototype); the assigned address is persisted by the adapter and physical commissioning enable is needed only for first install, UID mismatch or address conflict | Provisioning procedure, accessible UID label/debug readout, persisted-address tests |
 | SAD-P-004 | P | 5 ms snapshots with per-opcode response timeouts and admission of non-input exchanges only if their timeout path fits before the next input slot; feedback polled every 10 ms while armed; 100 ms ownership lease; 110 ms reboot/uncertain-transfer guard | Latency and drift tests; clock bound and cycle budget in PS-TIMING |
@@ -87,7 +89,15 @@ design. Numeric protocol choices remain provisional as a group.
 | SAD-F-003 | F | Separate Adapter Software Framework specification | Extract after two materially different working console drivers |
 | SAD-F-004 | F | Network firmware update: update-profile supplement (image format, signing, anti-rollback, recovery path, OTP policy with a prototype/production distinction) | Before any node advertises the Update service |
 | SAD-F-005 | F | Pressure-sensitive buttons (a negotiated minor adds an optional per-record extension, since the 0.1 record size is fixed) and USB protocols needing console-specific protocols or authentication | After the first profiles and the input-schema freeze |
-| SAD-F-006 | F | Hub display of the Dreamcast VMU screen (requires a new adapter-to-hub service) | After a Dreamcast profile exists |
+| SAD-F-006 | F | Hub display of the Dreamcast VMU screen (`SRS-UI-004`). Design intent: the adapter captures the console's display writes locally; the hub polls the owner at the lowest bus priority, at most 10 times per second per port, with an adapter-declared chunk size (96 bytes default, two chunks for a 192-byte frame); latest frame wins, no queue; wire proposal in `PS-SVC-DISPLAY`. Needs a minor that adds the service and a VMU display function in the Dreamcast profile | After a Dreamcast profile exists; `SRS-V-007` re-run with display polling active shows INPUT latency and jitter unchanged |
+| SAD-F-007 | F | Relative pointing devices (mice, trackballs): a negotiated minor adds a pointer record carrying running counters, not per-cycle deltas (`SAD-MAP-003`) | After the first profiles; a console profile that has a mouse |
+| SAD-F-008 | F | Keyboards: key-matrix or scan-code transport and keyboard LEDs | After a profile that needs one |
+| SAD-F-009 | F | Motion and tilt inputs (accelerometer-class peripherals) | New channel definition and units |
+| SAD-F-010 | F | Haptics beyond two-magnitude rumble: effect model for force-feedback wheels, jog dials and patterned packs | After a profile that needs one |
+| SAD-F-011 | F | Audio: microphones, headsets and accessory buzzers | New service and bandwidth budget |
+| SAD-F-012 | F | Compound and linked accessories: several sub-peripherals per port, Transfer Pak and GBA-link style bidirectional channels | Profile-level topology and channel design |
+| SAD-F-013 | F | Controllers with more than 16 buttons or 8 axes (for example Steel Battalion): a larger or second input record type in a negotiated minor | After the input-schema freeze |
+| SAD-F-014 | F | Console-authenticated accessory storage (for example PS2 MagicGate memory cards) | Licensing and provenance decision (`SRS-LIC-001`) first |
 
 Dependency chain: console/peripheral coverage -> timing/resource budget -> MCU
 and storage choice -> power/isolation -> harness approval. Independently, USB
@@ -254,6 +264,52 @@ the freeze, not a silent substitution. Pressure-sensitive buttons are Future
 Required for the first profile: only the elements of the selected console and
 controller mode (`SAD-O-001`).
 
+### SAD-MAP-003: peripherals outside the generic model (informative)
+
+This table lists console peripherals that `PS-DATA-INPUT`, `PS-SVC-FEEDBACK`
+and the 0.1 storage service cannot express, with a proposed disposition. Peripheral
+facts are from general knowledge, not primary documents, and each must be verified
+before a profile relies on it. Dispositions use the register classes of section 3:
+F entries are Future and need a negotiated PS minor and a profile; none is
+required for initial acceptance. The classification is proposed and awaits owner
+confirmation. An adapter shall not advertise (`SRS-NET-002`) or silently
+approximate (`SRS-IN-007`) a peripheral it cannot represent.
+
+| Gap | Examples (console) | Why PS 0.1 cannot express it | Disposition |
+|---|---|---|---|
+| Relative pointing | Mouse: SNES, N64, Mega Drive, Saturn, PlayStation, Dreamcast; NES Arkanoid paddle is absolute | Axes are absolute; deltas must be accumulated without loss | `SAD-F-007` |
+| Light guns | Zapper, Super Scope, Menacer, Virtua Gun, Guncon/G-Con, Dreamcast and Xbox guns | Need CRT video timing; no video input | Excluded by `ICD-CAP-017` (not Future) |
+| Keyboards | Famicom, N64 Randnet, Saturn, Dreamcast, GameCube | No key-matrix or scan-code model; LEDs | `SAD-F-008` |
+| Analog (pressure) buttons | PS2 DualShock 2 (12 buttons), Original Xbox face/Black/White, NeGcon | Button bits are 1 bit | `SAD-F-005` (existing) |
+| Motion and tilt | Dreamcast maracas and fishing controller, Power Glove, N64 Bio Sensor | No motion channels or units | `SAD-F-009` |
+| Rich haptics | JogCon (force-driven jog dial), force-feedback wheels, Dreamcast Jump Pack patterns | Feedback is two magnitudes, no effect model | `SAD-F-010` |
+| Audio | Dreamcast microphone, N64 VRU, GameCube microphone, Xbox Communicator, VMU buzzer | No audio path | `SAD-F-011` |
+| Displays | VMU LCD, PocketStation LCD | No display service in 0.1 | `SAD-F-006` (design in `PS-SVC-DISPLAY`) |
+| Compound and linked accessories | Dreamcast controller + VMU + pack; N64 Transfer Pak; GameCube GBA link; Xbox Memory Unit and Communicator slots | One virtual peripheral per port; linked devices need a bidirectional channel | `SAD-F-012` |
+| Multitaps | SNES, Mega Drive, Saturn, PlayStation, PS2 | Two players, two ports | `SAD-F-001` (existing) |
+| Oversized controllers | Steel Battalion (about 40 buttons, pedals, lever, backlit buttons), Densha de Go controllers | More than 16 buttons or 8 axes | `SAD-F-013` |
+| Authenticated storage | PS2 MagicGate memory cards | Storage is opaque bytes, no console authentication | `SAD-F-014`; licensing under `SRS-LIC-001` |
+
+Fits with caveats (no register entry; the profile states the limits):
+
+- Racing wheels: steering plus combined pedals; separate pedals use axes 4/5;
+  clutch and shifters are not represented (`PS-DATA-INPUT`).
+- Guitars: buttons plus one axis. Dance mats and fight sticks: buttons.
+- Saturn Mission Stick: stick, but the throttle has no dedicated axis; a profile
+  mapping is an explicit user-visible decision.
+- Rumble and storage accessories: rumble through `PS-SVC-FEEDBACK` (single-motor
+  consoles reduce the two magnitudes); N64 Controller Pak, Dreamcast memory and
+  PlayStation memory cards through the Storage service.
+
+Design note for `SAD-F-007`: a mouse sample is not a snapshot. `PS-TIMING` never
+retries INPUT and the newest sample wins, so per-cycle deltas would be lost on a
+dropped exchange. A relative record shall carry running counters (wrapping, with
+difference arithmetic in the adapter) instead of deltas.
+
+For the leading first-console candidate (Saturn, `SAD-O-001`) none of these gaps
+blocks the digital pad or the 3D Control Pad; only the digital L2/R2 position of
+`SAD-MAP-002` applies.
+
 ## 5. SAD-OWN-001: ownership and routing
 
 ### Policy
@@ -370,15 +426,18 @@ change, but routes and mapping compatibility are validated anew.
 The hub uses a monotonic deadline scheduler, not an unrestricted management
 request queue. It selects the newest complete player samples at each 5 ms
 boundary, prioritises owner INPUT, then feedback/status, then bounded management
-chunks. Each opcode has its own response timeout (`PS-TIMING`), and a
+chunks, then display data (lowest, `SAD-F-006`). Each opcode has its own response timeout (`PS-TIMING`), and a
 non-input exchange is admitted only if its worst-case timeout path ends before
 the next reserved input slot; the cycle budget table in `PS-TIMING` shows that
 INPUT, FEEDBACK_POLL and one STATUS all timing out still fits within 5 ms.
 An INPUT is never retried: a lost exchange is replaced by the next cycle's
 newest sample (`SRS-PERF-005`). No bulk transaction starts unless its worst-case
 completion, including timeout and guard, fits before the next reserved input
-slot. A maximum-size transaction may not fit while armed; reduce chunk size or
-defer to maintenance.
+slot. A maximum-size transaction (2.15 ms timeout path at 2 Mbit/s) fits in most
+cycles but not after several timeouts; reduce chunk size or defer to maintenance
+when it does not fit. A display exchange is admitted only in the slack that
+remains after the due INPUT, feedback, status and management exchanges, so it
+cannot delay them.
 
 Status scanning must satisfy the automatic-policy freshness window for the
 enrolled roster or automatic selection stays blocked. Management transfers may
