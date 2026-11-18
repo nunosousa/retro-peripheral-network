@@ -5,8 +5,8 @@
 | Document ID | RPN-RVP |
 | Revision | 0.1 |
 | Status | Working process document - not an engineering specification |
-| Date | 2026-11-17 |
-| Applies to | [SRS](SRS.md), [ICD](ICD.md), [EIC](EIC.md), [SAD](SAD.md), [PS](PS.md), [development guide](DEVELOPMENT-GUIDE.md) and [README](../README.md) |
+| Date | 2026-11-18 |
+| Applies to | [SRS](SRS.md), [ICD](ICD.md), [SAD](SAD.md), [PS](PS.md), [development guide](DEVELOPMENT-GUIDE.md) and [README](../README.md) (the [EIC](EIC.md) was deprecated on 2026-11-18 and is no longer reviewed as a specification) |
 | First applied in | [REVIEW-001](reviews/REVIEW-001.md) |
 
 This guide makes a system-requirements review repeatable. It does not change any
@@ -83,12 +83,12 @@ Run these checks; they are cheap and catch cost-effective errors early.
 ### Phase 3 - Traceability
 
 Build (or update) the matrix: owner intent -> SRS requirement -> design element
-(SAD/PS/ICD/EIC) -> verification entry. Flag:
+(SAD/PS/ICD) -> verification entry. Flag:
 
 - requirements with no verification entry or a verification with no method;
 - design elements with no requirement (orphan design) and vice versa;
 - requirements whose acceptance criterion is not measurable;
-- verification IDs in one document (for example `EIC-VER-*`) absent from the SRS matrix.
+- verification IDs in one document (for example `ICD-VER-*`) absent from the SRS matrix.
 
 ### Phase 4 - Numerical recomputation
 

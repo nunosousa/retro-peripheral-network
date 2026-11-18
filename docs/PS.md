@@ -5,12 +5,13 @@
 | Document ID | RPN-PS |
 | Revision | 0.1 |
 | Status | Draft - provisional profile, not interoperability validated |
-| Date | 2026-10-23 |
+| Date | 2026-11-18 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-ICD](ICD.md), [RPN-SAD](SAD.md) |
 
 | Revision | Change history |
 |---|---|
 | 0.1 | Initial bounded framing, commissioning, service schemas, two-player input and safe ownership transactions. |
+| 0.1 (2026-11-18) | REVIEW-001 correction cycle: per-opcode response timeouts and cycle budget, feedback cadence, commissioning retry and ID rules, persisted address, hardware UID/RNG provisioning, CAPS kind 4 (`neutralisation_bound_us`) and bounded CAPS indexes, STATUS lifecycle/counter corrections, idle-identity check, Update marked Future. |
 
 ## 1. PS-PROFILE: scope and conventions
 
@@ -146,9 +147,11 @@ or not matching the outstanding exchange, is discarded and counted.
 | 0x0E | CONFLICT | Reused transaction/object sequence with different content |
 
 The hub generates a new nonzero, practically non-repeating 64-bit session at
-boot and before transaction-ID exhaustion. The implementation must document
-entropy or persistent-counter guarantees; a timer or fixed boot value is not
-sufficient. IDs increase strictly within a session; no wrap. When 0xFFFFFFFF is
+boot and before transaction-ID exhaustion. The session ID is drawn from the
+RP2350 hardware random number generator after a documented health check; if the
+health check fails, a persistent session counter combined with the hub UID is
+the fallback, and a timer or fixed boot value is never sufficient. The
+implementation documents which source was used. IDs increase strictly within a session; no wrap. When 0xFFFFFFFF is
 exhausted, release ownership, wait the guard, create a new session and HELLO
 again. At 200 exchanges/s the 32-bit space lasts about 248 days (less with
 additional traffic), avoiding a forced transition every few minutes. Rollover
@@ -160,7 +163,9 @@ exceeds the remaining ID space. Exhaustion is an explicit fault, not permission
 to reuse an ID.
 
 Each node retains its highest completed transaction ID and last response for
-the current session. A retry uses the exact original bytes and ID. The same
+the current session. The ID, cache and conflict rules in this section apply to
+sessions 1 and above; commissioning exchanges (session 0) use the separate
+commissioning counter and retained exchange defined in `PS-DISCOVERY`. A retry uses the exact original bytes and ID. The same
 ID and identical request returns the cached response without repeating side
 effects or renewing a lease. Same ID with different bytes returns CONFLICT.
 Lower IDs return CONFLICT. A higher ID starts a new transaction and replaces
@@ -173,7 +178,9 @@ attempts total), only if scheduler deadlines permit. Once abandoned, that ID
 is never retried. A timed-out state-changing operation is **indeterminate**:
 query state, revoke/wait for a lease, or perform the defined recovery; do not
 infer that it failed before taking effect. Nodes that reset lose session/cache
-and return inhibited, so reset is not transparent exactly-once delivery.
+and return inhibited (keeping a persisted address), so reset is not transparent
+exactly-once delivery. INPUT is the exception to retries: it is never retried,
+because the next cycle carries a newer sample (`PS-TIMING`).
 
 Long storage/update work is staged behind an operation token and polled.
 Acceptance is not durable success. Operations shall not block the response
@@ -206,46 +213,94 @@ the established session's transaction cache/high-water mark.
 | Bit / UART byte | 1 us / 10 us (start + 8 data + stop) |
 | Request transmitter disable | Within 20 us after last stop bit |
 | Earliest response first start bit | 50 us after request last stop bit |
-| Latest response first start bit | 250 us after request last stop bit |
-| Response completion timeout | 3 ms after request last stop bit |
+| Latest response first start bit | 250 us after request last stop bit (provisional; processing budget open, `SAD-O-009`) |
+| Response timeout | Per opcode, from the request last stop bit: 1.0 ms (short class) or 3.0 ms (long class); see below |
 | Bus idle guard after response or timeout | At least 50 us; sender driver disabled within 20 us of its last stop bit |
+| Isolated transceiver (`SAD-P-010`) | Propagation, driver-enable and driver-disable delays of the isolated interface count inside the 20 us disable allowance and 50 us earliest-response gap and shall be measured (`ICD-VER-020`) |
 | Armed input cadence | One complete INPUT exchange each 5 ms |
+| Feedback poll cadence | One FEEDBACK_POLL to the owner every 10 ms (every second cycle) while armed |
 | Adapter lease | 100 ms since acceptance of ARM or newer complete INPUT |
-| Local neutralisation delay | At most 1 ms, including in-flight console transaction |
-| Hub reboot / uncertain revoke guard | 110 ms since latest possible renewal acceptance; full 110 ms at boot |
-| Acknowledged revoke drain guard | 2 ms after response completion, before any new ARM |
+| Local neutralisation delay | At most the adapter's declared `neutralisation_bound_us` (CAPS kind 4), which shall not exceed 1 ms for a conforming profile |
+| Hub reboot / uncertain revoke guard | 110 ms since latest possible renewal acceptance; full 110 ms at boot; valid while every declared bound is at most 1 ms |
+| Acknowledged revoke drain guard | `max(2 ms, 2 x B)` after response completion, before any new ARM; `B` is the largest declared bound among enrolled adapters (2 ms when all are at most 1 ms) |
 | Monotonic clock error | At most +/-1% over qualified operating conditions |
 
 Adapters shall not start late replies. If an operation cannot complete quickly,
 reply BUSY or return an accepted token; do not transmit after the response window.
-A complete maximum reply needs 2.20 ms plus at most 0.25 ms start delay,
-inside the 3 ms timeout. No UART flow control or unbounded inter-byte pauses
+A complete maximum reply needs 2.20 ms plus at most 0.25 ms start delay.
+No UART flow control or unbounded inter-byte pauses
 are allowed; a frame is transmitted continuously.
 
-Worst-case timeout slot for a maximum request is
-`2.20 + 3.00 + 0.05 = 5.25 ms`. It does not fit between 5 ms input slots.
-The scheduler must shrink management chunks, defer them, or use maintenance.
+### Per-opcode response timeout
+
+The response timeout is `latest start (0.25 ms) + maximum response wire time +
+margin (at least 0.05 ms)`, rounded up to a class. It is not one global value.
+
+| Class | Condition | Timeout | Opcodes |
+|---|---|---|---|
+| Short | Maximum response at most 70 wire bytes (0.70 ms) | 1.0 ms | Every opcode except STORAGE READ: DISCOVER_UID, ASSIGN_UID, HELLO, CAPS, STATUS, REVOKE, RESET, ROUTES, ARM, INPUT, FEEDBACK_POLL, MAINTENANCE, STORAGE (other subcommands), CONFIG, DIAGNOSTICS, UPDATE |
+| Long | Maximum response up to 220 wire bytes (2.20 ms) | 3.0 ms | STORAGE READ |
+
+A new opcode shall declare its class from its maximum response size.
+
+### Cycle budget
+
+Exchange time is `request wire + 0.25 + response wire + 0.05` on success and
+`request wire + timeout + 0.05` on timeout (1 Mbit/s, 10 us per wire byte; wire
+bytes are raw bytes plus COBS overhead plus the delimiter).
+
+| Exchange | Request / response wire bytes | Success (ms) | Timeout path (ms) |
+|---|---|---:|---:|
+| INPUT (two players) | 97 / 43 | 1.70 | 2.02 |
+| FEEDBACK_POLL | 32 / 46 | 1.08 | 1.37 |
+| STATUS | 28 / 52 | 1.10 | 1.33 |
+| STORAGE/CONFIG/UPDATE WRITE, maximum chunk | 220 / 37 | 2.87 | 3.25 |
+| STORAGE READ, maximum chunk | 39 / 220 | 2.89 | 3.44 |
+
+| 5 ms cycle | Content | All succeed (ms) | All time out (ms) | Slack in the worst case (ms) |
+|---|---|---:|---:|---:|
+| Feedback cycle (every 10 ms) | INPUT + FEEDBACK_POLL + one STATUS | 3.88 | 4.72 | 0.28 |
+| Other cycle | INPUT + one STATUS | 2.80 | 3.35 | 1.65 |
+
+Every combination of success and timeout in these cycles ends inside 5 ms, so
+a timeout of any one exchange cannot push the INPUT of the next cycle late.
+Status rotation of one roster node per cycle refreshes 31 nodes in 155 ms, inside
+the 500 ms automatic-selection freshness window.
+
+Scheduler rules:
+
+- A non-input exchange is admitted only if its worst-case timeout path ends
+  before the next reserved INPUT slot, evaluated from the actual end of the
+  preceding exchange. A maximum-size WRITE (3.25 ms) is therefore admitted only
+  directly after a successful INPUT (1.70 + 3.25 = 4.95 ms), and the scheduler
+  shrinks or defers management chunks that do not fit.
+- INPUT is never retried. A lost or timed-out INPUT is replaced by the next
+  cycle's INPUT with the newest sample and a new transaction ID.
+- Other retries are separate scheduled slots; never queue several retries ahead
+  of a newer input deadline.
 
 Two-player INPUT uses 69 payload bytes: 95 raw bytes, at most 97 wire bytes,
 0.97 ms. Its ACK has 15 payload bytes: 41 raw, at most 43 wire bytes, 0.43 ms.
-Including maximum response start delay and post-response guard, a successful
-exchange occupies at most `0.97 + 0.25 + 0.43 + 0.05 = 1.70 ms`, or 34%
-of the 5 ms cycle. With a response timeout, reserve `0.97 + 3 + 0.05 = 4.02 ms`.
-Retries are separate scheduled slots; never queue several retries ahead of a
-newer input deadline.
+A successful exchange occupies at most `0.97 + 0.25 + 0.43 + 0.05 = 1.70 ms`, or
+34 % of the 5 ms cycle; with its 1.0 ms timeout it occupies `0.97 + 1.0 + 0.05 =
+2.02 ms`.
 
-The remaining capacity is not all freely usable: failed exchanges, status
-freshness, feedback and bulk admission consume it. The 10 ms SRS latency target
-requires measured hub scheduling and adapter installation, not only this
-serialization calculation.
+Latency: a sample that becomes available just after a scheduling boundary waits
+at most 5 ms, then needs at most `0.97 + 0.25 = 1.22 ms` to be installed, so at
+most 6.22 ms in the normal profile (SRS-PERF-001, 10 ms). One lost INPUT adds one
+cadence, giving at most 11.22 ms (SRS-PERF-005, 12 ms). The end-to-end target of
+SRS-PERF-004 still requires measured hub processing and adapter installation, not
+only this serialization calculation.
 
 The 110 ms guard includes clock drift: an adapter's 100 ms timer may take
 `100 / 0.99 = 101.011 ms` real time, plus at most
 `1 / 0.99 = 1.011 ms` neutralisation, satisfying the 103 ms SRS bound. A hub's
-110 ms may elapse in `110 / 1.01 = 108.911 ms` real time, leaving margin.
-Lease time starts no later than completion of the renewal response; for guard
-accounting the hub shall conservatively timestamp the response completion,
-or the full response timeout for an uncertain renewal. This is the
+110 ms may elapse in `110 / 1.01 = 108.911 ms` real time, leaving margin; the
+guard stays valid for any declared bound up to about 7.8 ms, but a bound above
+1 ms violates the 103 ms SRS bound and is not conforming. Lease time starts no
+later than completion of the renewal response; for guard accounting the hub
+shall conservatively timestamp the response completion, or the INPUT/ARM timeout
+(1.0 ms after the request) for an uncertain renewal. This is the
 `last possible renewal` time used by the SAD transition engine. If the clock
 or neutralisation bounds cannot be proved, the profile must change before use.
 
@@ -257,7 +312,7 @@ complete implemented schemas below, not merely reserved opcodes.
 | Opcode | Symbol | Service bit | Purpose |
 |---|---|---|---|
 | 0x01 | DISCOVER_UID | Core | Targeted unassigned-node discovery |
-| 0x02 | ASSIGN_UID | Core | Set volatile node address |
+| 0x02 | ASSIGN_UID | Core | Set node address (persisted by the adapter after the reply) |
 | 0x03 | HELLO | Core | Establish session/version and identity |
 | 0x04 | CAPS | Core | Read one bounded capability descriptor |
 | 0x05 | STATUS | Core | Lifecycle, activity and counters |
@@ -280,11 +335,16 @@ Diagnostics and Update are optional. This fixed grouping is the entire
 
 ### PS-DISCOVERY
 
-A factory-provisioned stable 128-bit UID identifies an adapter independent of
-address or console type. UID bytes are opaque, not an integer. Provisioning must
-ensure uniqueness; neither an assumed RP2040 silicon serial number nor an
-unchecked flash identifier is sufficient. The UID is available via label,
-local debug or an equivalent out-of-band process.
+A stable 128-bit UID identifies an adapter independent of address or console
+type. UID bytes are opaque, not an integer. On production RP2350 parts the UID is
+a vendor-defined 128-bit value written to the locked user area of the OTP memory
+at manufacture and printed on a label; the RP2350 chip identifier alone (shorter
+than 128 bits) is not the UID. Prototype boards may use a documented non-OTP
+provisioning method (for example a value held in flash) so that development
+boards are never irreversibly programmed by accident; such a UID is marked as
+prototype in the hub roster and its uniqueness is the builder's responsibility.
+A node with no valid UID does not answer commissioning and reports fault 5. The
+UID is available via label, local debug or an equivalent out-of-band process.
 
 Only one unassigned adapter is physically enabled for commissioning at a time.
 The hub supplies its known UID; all other nodes remain silent. This avoids
@@ -297,18 +357,42 @@ Unknown UID enumeration is outside profile 0.1.
 | DISCOVER_UID | `uid[16]` | `uid[16], boot_id:u64, major:u8, min_minor:u8, max_minor:u8` |
 | ASSIGN_UID | `uid[16], boot_id:u64, address:u8` | `uid[16], boot_id:u64, address:u8` |
 
-Commissioning requests use destination 255, session 0 and otherwise normal
-frames/transaction IDs. Only an unassigned node with matching UID replies,
-source 254, session 0. ASSIGN also requires the current boot ID from DISCOVER.
-It replies from 254 and applies the new address only after the response leaves
-the UART. It retains the last ASSIGN request/reply until HELLO, permitting an
-exact retry at destination 255 after a lost ACK. No other assigned node replies
-to commissioning broadcasts. A reboot changes boot ID and loses the volatile
-address; the hub must commission again.
+Commissioning requests use destination 255 and session 0. Their transaction IDs
+come from a **commissioning counter** owned by the hub: nonzero, strictly
+increasing, separate from every session's counter and never reused within a hub
+boot. A node needs no session to de-duplicate commissioning, because it matches
+on `(UID, boot_id, transaction ID)`:
 
-The hub persists UID-to-address intent, not an assumption that the address
-survived reset. It checks that the proposed address is unused, validates UID in
-HELLO, and requires commissioning enable to be removed before arming.
+- DISCOVER_UID is a side-effect-free query; an unassigned node with matching UID
+  answers every copy.
+- Only an unassigned node with matching UID and current boot ID accepts ASSIGN_UID.
+  It replies from 254 (session 0) and applies the new address only after the
+  response leaves the UART. It then retains the exact ASSIGN request bytes, its
+  transaction ID and its reply until the first accepted HELLO or the next reset.
+- A node that has applied the address but has not yet seen HELLO is no longer
+  unassigned, yet it still accepts one thing at destination 255: an **exact**
+  retry of that retained ASSIGN request (same bytes, same transaction ID). It
+  returns the retained reply byte for byte. It ignores anything else at 255.
+  After HELLO, nothing at 255 is accepted.
+- After a lost ASSIGN reply the hub makes at most two exact retries, then tries
+  HELLO at the proposed address and, failing that, DISCOVER again.
+- No other assigned node replies to commissioning requests.
+
+The adapter persists the assigned address in its non-volatile store after the
+ASSIGN reply has left the UART; the write is never inside a response window. On
+reset a node with a valid persisted address returns to INHIBITED at that address
+with a new boot ID and waits for HELLO; it does not need commissioning or
+physical commissioning enable. HELLO carries `expected_uid`; a node whose UID
+differs answers NOT_FOUND and changes nothing, which the hub treats as a UID
+mismatch. Asserting the physical commissioning enable clears the persisted address
+and returns the node to UNASSIGNED; it is required only for a first install, a
+UID mismatch or an address conflict. A node without a safe non-volatile store
+keeps its address volatile and must be commissioned after every reset (a
+prototype limitation, `SAD-O-005`).
+
+The hub persists UID-to-address intent, and does not assume the address matches
+until HELLO validates the UID. It checks that the proposed address is unused and
+requires commissioning enable to be removed before arming.
 Duplicate UIDs or address contention invalidate the installation and require
 physical isolation/reprovisioning. The protocol does not claim reliable
 detection of two perfectly simultaneous identical replies.
@@ -328,7 +412,8 @@ commissioning_enabled must be 0 before arming. Boot ID is a new nonzero,
 practically non-repeating value on each adapter boot.
 
 CAPS request: `kind:u8, index:u16`. Indexes enumerate 0 upwards per kind;
-NOT_FOUND terminates a list. Lists remain immutable for a boot ID.
+NOT_FOUND terminates a list. A list holds at most 64 entries (indexes 0..63);
+an index of 64 or more returns BAD_VALUE, and so does an unknown kind. Lists remain immutable for a boot ID.
 
 | Kind | Response after `kind:u8, index:u16` | Meaning |
 |---|---|---|
@@ -336,6 +421,12 @@ NOT_FOUND terminates a list. Lists remain immutable for a boot ID.
 | 1 | `resource:u16, size:u32, read_granule:u16, write_granule:u16, flags:u8` | One storage resource; flags bit 0 readable, bit 1 writable |
 | 2 | `profile:u16, max_image:u32, flags:u8` | One concrete update profile; flags bit 0 local physical enable required (shall be 1) |
 | 3 | `profile:u16, max_config:u16` | One configuration profile; max_config <= 4096 |
+| 4 | `neutralisation_bound_us:u16` | Exactly one entry (index 0), mandatory when the Input service is advertised: the profile's measured time within which neutral controls are visible to the console after an inhibit (`SRS-OWN-013`) |
+
+Kind 4: the value is nonzero and at most 1000 for a conforming profile. The hub
+derives its drain and uncertain-transfer guards from the maximum over enrolled
+adapters (`PS-TIMING`) and shall not arm an adapter that declares more than 1000
+without an owner-approved larger validated guard.
 
 Kind 0: feedback_bits bit 0 two-motor rumble, bit 1 player indicator;
 flags bit 0 explicit lossy-mapping approval required. Other bits zero.
@@ -350,15 +441,22 @@ resource has the same bound on its read granule.
 
 STATUS request empty. Response:
 `state:u8, activity:u8, fault:u16, generation:u32, lease_remaining_ms:u16,
-dirty_resources:u16, rx_errors:u32, timeouts:u32, feedback_overflows:u32`.
+dirty_resources:u16, rx_errors:u32, lease_expiries:u32, feedback_overflows:u32`.
 State: 0 INHIBITED, 1 CONFIGURED, 2 ARMED_NEUTRAL, 3 LIVE, 4 MAINTENANCE,
-5 RECOVERY. Activity: 0 UNKNOWN, 1 INACTIVE, 2 ACTIVE. Fault 0 means none;
+5 RECOVERY. The SAD lifecycle state UNASSIGNED has no STATUS value: an
+unassigned node has no address, so it is not addressable by STATUS and is reached
+only through commissioning. Activity: 0 UNKNOWN, 1 INACTIVE, 2 ACTIVE. Fault 0 means none;
 1 local I/O, 2 timing/resource, 3 persistence, 4 recovery, 5 address/provisioning,
-6 internal/watchdog; further values reserved. Generation/lease are zero when
+6 internal/watchdog; further values reserved. Fault 5 is raised when the UID
+provisioning is missing or invalid, when the persisted address record fails
+validation, or when the physical commissioning enable is asserted while the node
+is ARMED_NEUTRAL or LIVE (the node also inhibits). Generation/lease are zero when
 not armed/configured as applicable. Counters saturate at `0xFFFFFFFF`;
-dirty_resources is a count, not a bitmap.
-timeouts counts ownership lease expirations; it does not purport to measure
-the hub's unobserved request timeouts.
+dirty_resources is a count, not a bitmap. `rx_errors` is the sum of
+DIAGNOSTICS counters 0..3 (bad COBS, bad CRC, oversize/partial frame, invalid
+address/direction), saturating. `lease_expiries` counts ownership lease
+expirations (DIAGNOSTICS counter 11); it does not measure the hub's unobserved
+request timeouts.
 
 ## 6. PS-OWNERSHIP: routes, arm, snapshots and revoke
 
@@ -376,7 +474,10 @@ The hub chooses a nonzero generation, increasing for each route replacement
 within a session, never wrapping. ROUTES is accepted only while inhibited or
 configured, not armed or in maintenance. All routes are replaced atomically.
 The adapter checks required versus source masks, descriptor IDs, lossy
-approval and simultaneous hardware resources. Failure leaves previous
+approval and simultaneous hardware resources. It also rejects (INCOMPATIBLE) a
+peripheral that would change the identity the console currently sees, unless the
+profile declares live identity change (`SRS-IN-011`): a route selects mapping, not
+identity. Failure leaves previous
 configuration intact but not armed. Same generation with different content is
 CONFLICT; same content is idempotent only while that generation remains
 CONFIGURED. Once cleared by revoke/expiry it is STALE_GENERATION, not reusable.
@@ -421,7 +522,7 @@ Unreported buttons/axes have zero values; nonzero invalid values are BAD_VALUE.
 | 10..11 | Left, right stick click |
 | 12..13 | Primary, secondary menu |
 | 14..15 | Auxiliary 0, auxiliary 1 |
-| 16..31 | Reserved zero |
+| 16..31 | Reserved zero; candidate generic positions (digital L2/R2) are earmarked for the schema freeze, see `SAD-MAP-002` |
 
 | Axis index / validity bit | Function | Valid range and neutral |
 |---|---|---|
@@ -480,7 +581,11 @@ Response: `present:u8` followed, if 1, by
 `event_id:u32, generation:u32, port:u8, player:u8, kind:u8,
 duration_ms:u16, value0:u16, value1:u16`.
 
-Events are held until acknowledged on a later poll. The hub acknowledges only
+Events are held until acknowledged on a later poll. The hub polls the owner
+adapter every 10 ms while armed (`PS-TIMING` cycle budget), so a continuous
+effect that needs a refresh at least every 100 ms is served ten times over. The
+adapter reports the console's native effect richness; the hub reduces it to what
+the bound physical device supports (`SAD-FB-001`). The hub acknowledges only
 after processing or explicitly discarding a stale/unsupported event with a
 diagnostic. It acknowledges duplicates without replaying the effect. Event IDs
 increase from 1 within a session, do not wrap; exhaustion inhibits feedback
@@ -520,7 +625,8 @@ RESET request `mode:u8` (0 normal reset, 1 local recovery boot).
 Requires inhibited, no dirty data/incomplete operation, commissioning disabled
 and no open handles. Mode 1 additionally requires local physical recovery
 enable. Reply empty; reset occurs only after ACK transmission. Lost ACK is
-resolved by boot_id change and recommissioning, not an assumed success.
+resolved by boot_id change and a new HELLO at the node's persisted address (or
+recommissioning when the address is volatile or cleared), not an assumed success.
 
 The following common operation envelope is used by STORAGE/CONFIG/UPDATE.
 Only one persistent operation may be active per node. All are maintenance-only.
@@ -612,10 +718,14 @@ checks required by that concrete profile succeeded, not that the new image is
 running. ACTIVATE requires DONE plus physical update enable and starts a
 recoverable boot switch after sending its ACK. It remains inhibited.
 
-Image package layout, target hardware identifiers, cryptographic manifest,
+The Update service is **Future** for the first prototype (`SRS-UPD-004`,
+`SAD-F-004`). Image package layout, target hardware identifiers, cryptographic manifest,
 boot selection and rollback are **not yet defined**. Consequently no concrete
 update profile ID is assigned in this draft, and implementations shall not
-advertise Update until a controlled profile supplement defines these items.
+advertise Update until a controlled update-profile supplement defines these
+items (image format, signing, anti-rollback, recovery path and an OTP policy
+with a prototype/production distinction, so development boards are never
+irreversibly locked by accident).
 The transport schema above is not, by itself, an implementable safe updater.
 CRC is not an update-authorisation mechanism.
 
@@ -645,9 +755,14 @@ Before firmware interoperability is claimed, tests shall include:
 - Single- and two-player size checks, masks, signed axes and all enum errors.
 - Duplicate/reordered/lost requests and responses, reboot/session rollover,
   stale generation, lease expiry and lost revoke ACK.
-- Commissioning retry, volatile address loss and physical duplicate-node faults.
+- Commissioning exact-retry after a lost ASSIGN reply, persisted-address boot,
+  UID mismatch and physical duplicate-node faults; a node without a persisted
+  address needing commissioning after reset.
 - Storage/config power-fail, ambiguous COMMIT, token query and failed recovery.
-- Feedback ack retries, stale events, coalescing and physical-device expiry.
+- Feedback ack retries, stale events, coalescing, 10 ms poll cadence and physical-device expiry.
+- Per-opcode timeouts, one lost INPUT replaced by the next cycle's sample (no retry), and
+  every success/timeout combination of the cycle budget finishing inside 5 ms.
+- CAPS kind 4 value and the hub's derived guards; CAPS index bounds.
 - Timing captures at maximum supported bus/USB/console load.
 
 Open gates: physical layer approval, console-specific peripheral descriptors

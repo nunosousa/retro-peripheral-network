@@ -1,19 +1,24 @@
 # RPN development process guide
 
-**Current position: Step 1 - reviewing the initial specifications.**
+**Current position: Step 2 - reconciling the documents.** The
+[REVIEW-001](reviews/REVIEW-001.md) correction cycle has been applied; its
+re-review (see [RPN-RVP](REVIEW-PROCESS.md#9-re-review-and-exit-criteria)) and the
+open S1 gates are next.
 
 This is a working guide, not a fifth engineering specification. The
 [SRS](SRS.md), [ICD](ICD.md), [SAD](SAD.md) and [PS](PS.md) remain the technical
 authorities. This guide does not change their requirements or revision status.
+Formal reviews follow the [specification review process](REVIEW-PROCESS.md)
+(RPN-RVP) and are recorded in [reviews/](reviews/REVIEW-001.md).
 
 ## The overall flow
 
 ```text
 0. Initial project brief and four draft specifications [completed]
                          |
-1. Your review of intent and scope [YOU ARE HERE]
+1. Review of intent and scope, recorded per RPN-RVP [completed: REVIEW-001]
                          |
-2. Reconcile documents and identify blocking decisions
+2. Reconcile documents and identify blocking decisions [YOU ARE HERE]
                          |
 3. Select and bound the first two-player prototype
                          |
@@ -52,6 +57,11 @@ Review for intent first, wording second. For each concern, distinguish:
 - **Question:** evidence or explanation is needed before choosing.
 - **Future idea:** potentially useful, but not needed for the current increment.
 
+Record formal remarks, owner responses and resolutions in a review record under
+`docs/reviews/`, following [RPN-RVP](REVIEW-PROCESS.md): the reviewer raises
+remarks, the owner answers each one, and a separate correction cycle changes the
+documents (the review is Step 1b, and its output feeds Step 2).
+
 Edit the documents directly if useful. Preserve stable IDs and keep all four at
 Revision 0.1. Uncertainty is acceptable: mark a proposal or open question rather
 than making a guess look confirmed. Do not attempt to solve every console now.
@@ -78,6 +88,9 @@ need to be complete or free of all technical unknowns.
   evidence**, or **can wait**.
 - Update the existing [SAD decision register](SAD.md#3-decision-register);
   do not create competing decision lists.
+- Apply owner-approved review answers in a correction cycle
+  ([RPN-RVP section 8](REVIEW-PROCESS.md#8-correction-cycle)) and run the shorter
+  re-review before declaring the step complete.
 
 **Checkpoint:** no unresolved contradiction blocks prototype scoping, and each
 remaining blocker has an explicit next action. Hardware unknowns may remain
@@ -198,6 +211,8 @@ a successful gameplay demonstration for fault and timing tests.
 **Goal:** preserve what was learned and avoid specification/firmware drift.
 
 - Update the four documents together where results changed the design.
+- Re-run a review per [RPN-RVP](REVIEW-PROCESS.md#9-re-review-and-exit-criteria)
+  before the next checkpoint that connects hardware, and keep the review record.
 - Replace provisional assumptions with measured facts only where justified.
 - Link evidence to requirement IDs and retain unsupported cases explicitly.
 - Review whether the MCU, network profile and proposed common interfaces remain
@@ -238,9 +253,15 @@ complete every optional service before trying a second console.
 5. **Stop at unsafe or unproven boundaries.** Change the experiment rather than
    risking original hardware.
 6. **Close each work session with four items:** what changed, what was verified,
-   what remains blocked and the single next action.
+   what remains blocked and the single next action. Also note any review record
+   opened, answered or closed.
 7. **Save coherent checkpoints in version control.** Review the diff and commit
    at useful review/test boundaries; commits do not change document maturity.
+8. **Document control within Revision 0.1.** Any change to a document's body text
+   or companion list updates its date and adds a one-line entry to its single
+   change-history table; the revision number stays 0.1 unless the owner approves
+   a maturity change.
 
-For the next session, finish Step 1 and use the Step 1 hand-off prompt.
+For the next session, run the shorter re-review of the REVIEW-001 corrections
+(RPN-RVP section 9), then use the Step 3 prompt once the Step 2 checkpoint holds.
 There is no need to select every peripheral or finalise every wire field first.

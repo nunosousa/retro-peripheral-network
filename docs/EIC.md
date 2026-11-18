@@ -1,16 +1,50 @@
-# Electrical Interface Capability Specification
+# Electrical Interface Capability Specification (deprecated engineering notes)
 
 | Control field | Value |
 |---|---|
-| Document ID | RPN-EIC |
+| Document ID | RPN-EIC (deprecated; identifier not reused) |
 | Revision | 0.1 |
-| Status | Draft - electrical capability baseline; not validated for production hardware |
-| Date | 2026-11-16 |
-| Companion documents | [RPN-SRS](SRS.md), [RPN-ICD](ICD.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
+| Status | **Deprecated 2026-11-18** - engineering notes, not a specification; carries no requirements |
+| Date | 2026-11-18 |
+| Companion documents | None. Superseded by [RPN-ICD](ICD.md), sections 8 to 11 |
 
 | Revision | Change history |
 |---|---|
-| 0.1 | Initial repository draft: console electrical capability baseline, signal-channel counts and aggregate resource requirements. |
+| 0.1 | Initial repository draft (2026-11-16): console electrical capability baseline, signal-channel counts and aggregate resource requirements. |
+| 0.1 (2026-11-18) | Deprecated by the owner's answer to REVIEW-001 RR-001-008: no longer an individual document; useful content merged into the ICD; duplicate history table removed. |
+
+> **Deprecation notice.** This file was added without applying the project
+> standards (identifiers, classification, provenance, precedence). It is kept
+> only as engineering notes for the history of the ICD content. Its `shall`
+> statements are **not requirements**. Where it conflicts with the SRS, ICD, SAD or
+> PS, those documents take precedence. Nothing here is approved for wiring.
+>
+> Known differences from the current ICD (do not rely on this file):
+>
+> - the notes size N64, GameCube, Dreamcast and Xbox for four ports; the project
+>   scope is two emulated ports (`SRS-SYS-009`);
+> - the notes treat Saturn TL as a static bias and count 6 channels per port;
+>   the ICD counts 7 (TL is an output) and recomputes the totals;
+> - the notes require every channel to support 3.3 V and 5 V push-pull, open-drain
+>   and high-impedance at runtime; the ICD makes voltage domain and drive type a
+>   hardware property of each console connector module (`ICD-CAP-004`) and forbids
+>   reliance on MCU 5 V tolerance or internal pulls (`SRS-HW-006`);
+> - the power table values are unverified secondary leads (`ICD-REF-001`).
+>
+> **Where the content went**
+>
+> | Former content | Now in |
+> |---|---|
+> | Sections 1-3, 9 (purpose, scope, architecture, constraints) | `ICD-CAP-001..012` and `ICD-CAP-017` |
+> | Sections 4-5 (capabilities, channel definition) | `ICD-CAP-003..009` |
+> | Sections 6-7 (console tables, aggregate resources) | ICD section 8.2 and 8.3 (two-port, corrected) |
+> | Section 8 (power domains) | ICD section 8.5 and `ICD-PWR-002` |
+> | Section 10 (`EIC-VER-001..014`, retired) | `ICD-VER-001..014`, plus `ICD-VER-015..020` |
+> | Section 11 (open items) | ICD-CON-001 supplements and `ICD-QUAL-001` |
+> | Section 12 (references) | `ICD-REF-001` |
+
+The remainder of this file is the original text, unchanged except for the removal
+of its duplicate revision-history block.
 
 ## 1. Purpose and interpretation
 
@@ -544,11 +578,3 @@ The following items remain unresolved and shall be addressed during detailed har
 8. AllPinouts — Sony PlayStation controller port: <https://allpinouts.org/pinouts/connectors/input_device/sony-playstation-controller-port/>
 9. Microsoft — Original Xbox Hardware Design Specification: <https://consolemods.org/wiki/images/a/ae/Xbox_Hardware_Design_Specification_1.02.pdf>
 10. XboxDevWiki — Xbox Input Devices: <https://xboxdevwiki.net/Xbox_Input_Devices>
-
----
-
-## Revision history
-
-| Revision | Date | Description |
-|---|---|---|
-| 0.1 | 2026-11-16 | Initial draft defining electrical interface capabilities and aggregate resource requirements. |

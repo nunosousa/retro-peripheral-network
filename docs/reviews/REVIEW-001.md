@@ -8,7 +8,7 @@
 | Reviewed commit | `8a5062f` (Add Electrical Interface Capability Specification and update companion document links) |
 | Documents reviewed | [README](../../README.md); [SRS](../SRS.md), [ICD](../ICD.md), [SAD](../SAD.md), [PS](../PS.md) (all Rev 0.1, 2026-10-23); [EIC](../EIC.md) (Rev 0.1, 2026-11-16); [DEVELOPMENT-GUIDE](../DEVELOPMENT-GUIDE.md) |
 | Phases performed | 1-9 of the process. Phase 6/7/8 console and silicon facts are from the reviewer's general knowledge plus the documents' own references; **no primary datasheet or console manual was consulted**, so every such statement below is marked "verify" and is a question, not a finding of fact. |
-| Status of this record | Awaiting owner responses. The reviewed documents were **not modified** by this review. |
+| Status of this record | Owner responses received (all 40 remarks accepted). Correction cycle applied on 2026-11-18 by the corrector; closure awaits the re-review (RPN-RVP section 9). The reviewed documents at commit `8a5062f` were not modified by the review itself; they were modified by the correction cycle (see section 5). |
 
 ## 1. Owner constraints for this cycle
 
@@ -65,7 +65,7 @@ These were independently recomputed or checked and found correct. Keep them stab
 
 ## 4. Remarks
 
-Each remark leaves **Owner response** and **Resolution** blank. Severity and category
+Each remark records the owner's response and the corrector's resolution. Severity and category
 definitions are in [RPN-RVP](../REVIEW-PROCESS.md#6-severity-definitions).
 
 ---
@@ -93,7 +93,8 @@ editing it in place (IDs are not reused). Add a decision-register entry (for exa
 replace each RP2040 statement by an RP2350 statement checked against the current
 datasheet (RR-001-003). Define the exception procedure.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. New class-C `SRS-HW-005` (RP2350 family for hub and every adapter processor); `SRS-HW-001` retired, row kept; `SAD-D-004` with the exception procedure (evidence, owner approval, register entry); `SAD-R-008` and `SAD-O-003` reduced; RP2040 statements replaced in ICD-PWR-001, ICD section 6 and PS-DISCOVERY. The replacement statements are not yet checked against the datasheet (see `ICD-PLAT-001`).
 
 #### RR-001-002 - Which RP2350 variant, core architecture and resource budget?
 
@@ -116,7 +117,8 @@ maturity, unless a variant is needed), and add a per-profile resource table to e
 ICD-CON-001 supplement with a margin rule (for example: no more than 70 % of any
 resource in the worst two-port combination).
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. `SAD-P-007` (Arm cores; RP2350A default; RP2350B only where a profile's resource table shows the need). Resource-table field and the 70 % margin rule added to ICD-CON-001. First GPIO budget (`ICD-CAP-014`, ICD section 8.3): Mega Drive and Saturn need 23 GPIO, above 21 (70 % of 30), so they imply RP2350B. PIO/DMA/interrupt/RAM figures remain per-profile work (`SAD-O-004`); part facts need the datasheet check.
 
 #### RR-001-003 - RP2350 errata and 5 V tolerance versus the EIC universal channel
 
@@ -138,7 +140,8 @@ revision, stepping, errata ID, affected interface, mitigation) to the ICD, requi
 no console-facing signal relies on internal pulls or MCU 5 V tolerance, and add an EIC
 verification entry for unpowered-MCU / powered-console behaviour of each channel.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - "Don't rely on the chosen MCU 5V capabilities. Rely only on external translators when applicable."
+**Resolution (2026-11-18):** Applied. `SRS-HW-006` (no console-facing signal relies on MCU 5 V tolerance or internal pulls), `ICD-CAP-003`, `SAD-D-006`; `ICD-PLAT-001` datasheet/errata register created (unpopulated: the datasheet and errata have not been consulted, so no errata are recorded); `ICD-VER-015` (unpowered MCU with powered console); ICD-NET-001 states that internal pulls are not relied on. The register must be populated before Step 4.
 
 #### RR-001-004 - Hub USB host topology on the RP2350
 
@@ -159,7 +162,8 @@ resource budget (PIO state machines, DMA, interrupts, RAM) covering USB host, th
 RS-485 UART/PIO, and any display/UI; record the first-prototype choice (wired USB
 only, native host plus hub IC) explicitly as in development-guide Step 3.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - the RP2350 family has a single USB 1.1 interface; a USB hub IC provides the two player devices.
+**Resolution (2026-11-18):** Applied. `SAD-P-009`; ICD-PWR-001 rewritten (native host behind a hub IC, no PIO USB host, diagnostics over UART/debug); `ICD-HUB-001` baseline; pass criterion for "two devices" in `ICD-VER-018` (one low-speed and one full-speed HID device, 10 minutes, no missed report) and `ICD-VER-019` (VBUS limiting); `SAD-O-003` reduced to device list and radio. First prototype: wired USB only.
 
 #### RR-001-005 - Original Xbox adapter: four USB device ports versus RP2350 USB resources and the two-player scope
 
@@ -184,7 +188,8 @@ In both cases specify the intra-adapter interconnect (for example an internal UA
 to a single gateway processor that owns the RS-485 node), the gateway's role in lease
 enforcement, and update SAD-R-001 accordingly.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - option A: two USB device ports; the other two console ports are left unconnected.
+**Resolution (2026-11-18):** Applied. `SRS-SYS-009`, `SAD-P-008`, new `SAD-ADAPT-001` (one gateway processor owns the RS-485 node and the lease; internal UART/SPI link; secondary processors apply a local deadline), `SAD-R-001` updated, `ICD-CAP-011`, Xbox row and Port-mapping field in ICD-CON-001. Which processor is the gateway and the internal link timing are left to the Xbox supplement.
 
 #### RR-001-006 - Unique ID and session entropy using RP2350 facilities
 
@@ -203,7 +208,8 @@ value written to OTP and locked, printed on a label; session ID = 64 bits from t
 hardware RNG with a documented health check and a fallback persistent counter. Update
 PS-DISCOVERY and PS-TRANSACTION wording accordingly.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. `SAD-P-003`; PS-DISCOVERY: 128-bit vendor-defined UID in locked OTP, printed on a label, 64-bit chip ID alone not accepted; PS-TRANSACTION: 64-bit session from the hardware RNG with a health check and a persistent-counter fallback. Added (not in the suggestion, to honour RR-001-007's rule against accidental irreversible programming): prototype boards may use a documented non-OTP UID, marked as prototype. OTP and RNG facts still need the datasheet check.
 
 #### RR-001-007 - Firmware update and signature scheme should use RP2350 boot features
 
@@ -223,7 +229,8 @@ addressed, write an update profile supplement (image format, signing, anti-rollb
 recovery path, OTP policy) with a prototype/production distinction so development boards
 are never irreversibly locked by accident.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. Update marked Future for the first prototype: `SRS-UPD-004` (F), `SAD-F-004`, `SAD-O-008` note, SAD section 8 and PS-SVC-UPDATE reworded; the future update-profile supplement must carry a prototype/production OTP distinction. Deferred item has owner (project owner), gate "before any node advertises Update" and register entry `SAD-F-004`.
 
 ---
 
@@ -247,7 +254,8 @@ statement and place in the reading order?
 paragraph (add `EIC-*`), SRS-V-006's design references, the development guide
 (five documents, reading order after the ICD) and replace "four-document" wording.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - the EIC was added ad hoc without regard to project standards; it is to be seen as engineering notes and deprecated as an individual document; useful content is used where consistent with the system intent; where in conflict, the existing documentation takes precedence.
+**Resolution (2026-11-18):** Applied by deprecation, not integration. [EIC](../EIC.md) carries a deprecation notice, status "Deprecated" and a content-mapping table; it is removed from the SRS/ICD companion lists and the README specification table; useful content merged into ICD sections 8 to 11 (`ICD-CAP`, `ICD-VER`, `ICD-PLAT-001`, `ICD-REF-001`); `EIC-VER-001..014` retired (SRS section 1); `SAD-D-005`; RPN-RVP "Applies to" updated. The document set stays at four specifications, so the "four documents" wording remains correct.
 
 #### RR-001-009 - Authority overlap between ICD (ICD-CON-001) and EIC section 6
 
@@ -268,7 +276,8 @@ ICD supplements = per-console approved electrical facts; a supplement may narrow
 exceed the envelope without an EIC change. Remove duplicated values from one side
 (single source per fact).
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008.
+**Resolution (2026-11-18):** Applied. The overlap is removed by making the ICD the single authority; `ICD-CAP-001` and `SAD-D-005` state the precedence rule (baseline for sizing, supplements for approved facts, a supplement may narrow but not exceed the baseline); the EIC no longer carries values.
 
 #### RR-001-010 - Document control inconsistencies
 
@@ -285,7 +294,8 @@ substantive change?
 updates the date and adds a one-line history entry within the same revision", keep a
 single history table per document, and record the rule in the development guide.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. Date and a dated history row updated in SRS, ICD, SAD, PS (and EIC); the EIC's duplicate history table removed; the rule is recorded as rule 8 of the development guide.
 
 #### RR-001-011 - Port and player scope conflict: four-port consoles versus "two players, two ports"
 
@@ -307,7 +317,8 @@ multitap/4-player extension, SAD-F-001); or, if four ports are wanted, make it a
 class-C requirement and revisit SRS-SYS-002/007, PS limits and ICD wording together.
 Define the mapping between PS `port` IDs and the console's physical ports.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008 (existing documentation takes precedence).
+**Resolution (2026-11-18):** Applied with the existing scope of two ports. `SRS-SYS-009` (an adapter emulates at most the two routable ports; other ports unpopulated, the console sees no controller), `SAD-P-008`, four-port/multitap support added to `SAD-F-001` (Future); ICD section 8.2 sizes N64, GameCube, Dreamcast and Xbox for two ports; "Port mapping" field added to ICD-CON-001 (PS port ID to physical connector).
 
 #### RR-001-012 - The EIC is not traceable: no requirement IDs, classification or pass criteria
 
@@ -326,7 +337,8 @@ classify it C/D/P, map each `EIC-VER-*` to the IDs it verifies with numeric pass
 criteria (thresholds, edge-rate, timing, current limits) and add an SRS-V row (or extend
 SRS-V-006) that references them.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008.
+**Resolution (2026-11-18):** Applied to the merged content. `ICD-CAP-001..017` carry IDs and classes; `ICD-VER-001..020` map the former `EIC-VER-001..014` one-to-one (plus 015..020) with pass criteria; `SRS-V-006` references them. Numeric thresholds are taken from the approved console supplements (and the RP2350 datasheet register), so those entries cannot be executed until the supplements exist; two proposed defaults are marked proposed.
 
 #### RR-001-013 - Terminology and stale wording
 
@@ -343,7 +355,8 @@ will be stale. Spelling and product naming vary across documents.
 channel, node, adapter, owner), delete the historical sentences, and choose one spelling
 variant and one name per console.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. Glossary added to SRS section 1 (hub, adapter, node, console port, port, player, route, endpoint, channel, owner, profile); "input endpoints" in `SRS-SYS-007` replaced by routes (endpoints); the historical sentences removed from SRS section 1 and SAD section 2; one name per console (SRS-SYS-004 now "Original Xbox") and "analog" as the single spelling of that term.
 
 #### RR-001-014 - Source provenance of EIC electrical values
 
@@ -361,7 +374,8 @@ documentation, datasheets of the original controller silicon, or a measurement)?
 retrieval date) and a "confidence" flag (published / secondary / measured); treat
 secondary-only values as unverified until measured on an original console.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied as far as the evidence allows. `ICD-REF-001` source register (ten sources, type, confidence); values in ICD sections 8.2 to 8.5 are flagged secondary/unverified and `ICD-CAP-016` treats them as leads until measured. Revision and retrieval dates were never recorded and cannot be reconstructed, so they read "not recorded" and must be filled in when the sources are consulted.
 
 #### RR-001-015 - Verification-matrix gaps
 
@@ -379,7 +393,8 @@ PS-SVC-CONFIG or the EIC (RR-001-012).
 attachment, no soldering, reversible fixture), change "counter wrap" to "counter
 exhaustion and rollover to a new session", and add a configuration case to SRS-V-005.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. New `SRS-V-009` (inspection/hardware method for `SRS-SYS-003`; removed from V-001's range), `SRS-V-003` now tests counter exhaustion and rollover to a new session, `SRS-V-005` adds the configuration cases and `PS-SVC-CONFIG`, ICD verification entries reached through `SRS-V-006`, and `SRS-V-010` for the new UI/persistence requirements.
 
 ---
 
@@ -406,7 +421,8 @@ table (INPUT + FEEDBACK_POLL + one STATUS rotation: about 1.70 + 1.08 + 1.10 = 3
 5 ms in the success case, and show which combinations of timeouts are admitted). State
 that the scheduler never starts a non-input exchange whose timeout path exceeds the slack.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied and recomputed (script in RPN-RVP Appendix B style, results in PS-TIMING). Per-opcode response timeout classes (short 1.0 ms; long 3.0 ms for STORAGE READ only); cycle budget table: INPUT 1.70/2.02 ms, FEEDBACK_POLL 1.08/1.37 ms, STATUS 1.10/1.33 ms (success/timeout path); all of INPUT + FEEDBACK_POLL + STATUS timing out is 4.72 ms, inside 5 ms; admission rule (non-input exchange only if its timeout path ends before the next INPUT slot) in PS-TIMING and SAD-SCHED-001; `SAD-P-004` updated.
 
 #### RR-001-017 - Latency requirement: 10 ms scope, loss behaviour, and no end-to-end target
 
@@ -427,7 +443,8 @@ its components, 99.9th-percentile versus maximum rules, behaviour under one lost
 (for example "newest sample of the next cycle, never a stale retry"), and a maximum
 manual-switch time (for example 500 ms nominal).
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied with proposed (class P) values the owner should confirm: `SRS-PERF-004` end-to-end added latency 16.7 ms at the 99.9th percentile with a component budget; `SRS-PERF-005` one lost INPUT installed within 12 ms with no stale retry (recomputed: 6.22 ms normal worst case, 11.22 ms with one loss); `SRS-OWN-012` manual switch 500 ms nominal; `SRS-PERF-001` clarified as the normal (no link error) profile; `SRS-V-003`/`SRS-V-007` extended. A tighter fight-stick target is left open in `SAD-O-007`.
 
 #### RR-001-018 - Is a 250 us latest response start realistic on a loaded adapter?
 
@@ -449,7 +466,8 @@ interacts with RR-001-016), or (b) allow the ACK to be sent after validation but
 the mapped install while keeping "installation completes before the next console-visible
 read"; the choice must keep SRS-IN-008's atomicity.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Recorded as a gate; the measurement itself cannot be done in a document cycle. `SAD-O-009` requires a measured processing budget on the chosen part before protocol tests and fixes the fallback order: first widen the per-opcode window (the timeout formula in PS-TIMING already contains the latest-start term), or, only with owner approval, acknowledge after validation but before installation while keeping SRS-IN-008 atomicity. PS-TIMING marks 250 us as provisional.
 
 #### RR-001-019 - Commissioning: contradictory retry rule and undefined transaction semantics
 
@@ -470,7 +488,8 @@ accepts an *exact* retry of the last ASSIGN at destination 255 (and nothing else
 and define commissioning transactions as a separate ID counter owned by the hub that
 nodes accept only if the (UID, boot_id, ID) matches the retained exchange.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied in PS-DISCOVERY: an assigned node that has not seen HELLO accepts only an exact retry of the retained ASSIGN at destination 255; commissioning uses a separate hub-owned commissioning counter and nodes de-duplicate on (UID, boot_id, transaction ID); PS-TRANSACTION states that its ID rules apply to sessions 1 and above.
 
 #### RR-001-020 - Volatile addresses and physical commissioning enable after every adapter reset
 
@@ -490,7 +509,8 @@ commissioning enable only for a first install, a UID mismatch or an address conf
 If the volatile rule is retained, mark it explicitly as a prototype limitation with an
 owner-approved exit criterion.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. The adapter persists its assigned address after the ASSIGN reply; a reset returns it to INHIBITED at that address and the hub confirms the UID in HELLO (UID mismatch answers NOT_FOUND); physical commissioning enable is required only for a first install, UID mismatch or address conflict and clears the persisted address. Changed in SAD adapter states, `SAD-P-003`, `SAD-O-005`, PS-DISCOVERY, PS-MSG, PS-MAINTENANCE RESET and the PS test list. A node without a safe store keeps the old volatile behaviour as a stated prototype limitation.
 
 #### RR-001-021 - UART baud-rate tolerance and node clock accuracy are not specified
 
@@ -510,7 +530,8 @@ clock with at most +/-100 ppm (value to be confirmed), and declare the permitted
 error budget per node and the resulting sampling margin; keep the +/-1 % lease clock
 bound as a separate, deliberately looser figure.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. Class-D `SRS-NET-010` (crystal-derived clock, at most +/-100 ppm, no internal RC oscillator for the bus baud rate); ICD-NET-001 "Clock and baud error" row with a proposed +/-0.5 % per-node budget and the requirement to compute the RP2350 divider and sampling margin; `ICD-VER-017`. The +/-1 % lease-clock bound stays separate. The two figures are marked "to be confirmed"; the divider calculation needs the chosen system clock.
 
 #### RR-001-022 - What does an inhibited adapter present to its console before ROUTES?
 
@@ -528,7 +549,8 @@ controller type at boot or on connection; changing it live may confuse games.
 state in the profile whether peripheral changes are allowed live; prefer a design in
 which the identity does not change at ARM (the route selects mapping, not identity).
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. `SRS-IN-011`, `SAD-D-007`, SAD-MAP-001 (the route selects mapping, not identity), PS ROUTES (INCOMPATIBLE if the identity would change unless the profile allows it), and an "Idle identity" field in ICD-CON-001.
 
 #### RR-001-023 - The 1 ms neutralisation bound must be validated per console, including USB consoles
 
@@ -549,7 +571,8 @@ local state?
 enrolled adapters, and fail profile approval if a console cannot meet the global bound.
 Add per-console measurement points to ICD-CON-001.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Specification applied; S1 gate stays open per profile until measured. `SRS-OWN-013`, `SAD-D-008`, new CAPS kind 4 `neutralisation_bound_us` (PS), guards derived from the maximum over enrolled adapters (drain guard `max(2 ms, 2 x B)`, 110 ms valid up to about 7.8 ms and conforming only up to 1 ms), SAD-OWN-001 text, a "Neutralisation" field and per-console measurement points in ICD-CON-001 (including the already-queued USB report and the 16-bit shift register read), and `ICD-VER-016`. A profile that cannot meet 1 ms fails approval.
 
 #### RR-001-024 - Incomplete or inconsistent definitions in PS lifecycle and status
 
@@ -568,7 +591,8 @@ immutable per boot but the maximum CAPS list length is not bounded.
 STATUS", define `rx_errors` as the sum of counters 0-3 (or remove), rename `timeouts` to
 `lease_expiries`, define fault-5 triggers, and bound the CAPS index range.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied in PS STATUS/CAPS and SAD adapter states: UNASSIGNED documented as not addressable by STATUS; `rx_errors` defined as the sum of DIAGNOSTICS counters 0..3; `timeouts` renamed `lease_expiries` (counter 11); fault 5 triggers defined (missing/invalid UID provisioning, invalid persisted address record, commissioning enable asserted while armed); CAPS lists bounded to 64 entries (index 64 or more and unknown kinds give BAD_VALUE).
 
 #### RR-001-025 - Feedback model coverage and polling cadence
 
@@ -588,7 +612,8 @@ cadence and the bus time reserved for it?
 armed, interleaved in the cycle budget of RR-001-016) and state that the adapter reports
 the console's native effect richness while the hub reduces to the physical device.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. FEEDBACK_POLL to the owner every 10 ms while armed, budgeted in the PS-TIMING cycle table; PS-SVC-FEEDBACK and SAD-FB-001 state that the adapter reports the console's native effect richness and the hub reduces it to the bound device; `SAD-P-004` and `SRS-V-008` updated.
 
 ---
 
@@ -617,7 +642,8 @@ positions that must be added (for example digital L2/R2) before the PS input sch
 frozen; mark pressure-sensitive buttons Future or reserve their encoding now, since the
 wire format is hard to extend.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. Informative controller-coverage matrix added as `SAD-MAP-002` (every target console and mode, with gaps); generic positions to add before the PS input schema is frozen: digital left/right trigger (L2/R2) buttons, noted in PS-DATA-INPUT with the 0.1 wire format unchanged (bits 16..31 stay reserved zero); pressure-sensitive buttons marked Future (`SAD-F-005`; the fixed record size means a negotiated minor). Required for the first profiles: only the selected console and mode (`SAD-O-001`). The matrix rests on secondary knowledge and needs primary-document verification per profile.
 
 #### RR-001-027 - Accepted USB input device classes are not defined
 
@@ -636,7 +662,8 @@ prototype and the pass criterion?
 and descriptor), state HID-only for the first increment, and list other protocols as
 Future with the credential/authentication caveat.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. The first-increment gap is closed by `SRS-IN-012` (USB HID gamepads and fight sticks with parseable report descriptors), `SAD-P-011`, and `SAD-F-005` (non-HID protocols and authentication-requiring devices are Future). Not resolved: the two concrete first devices (name, VID/PID, descriptor) need the project owner's choice; recorded as `SAD-O-010` for Step 3.
 
 ---
 
@@ -662,7 +689,8 @@ which refuses incompatible profiles), keep high-Z as the only state reachable wi
 a valid module/profile match, and restate EIC 4.1-4.3 as "the platform shall provide
 the capabilities across modules" rather than "every channel shall do everything".
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008; apply suggested solution.
+**Resolution (2026-11-18):** Specification applied; S1 gate closes at re-review plus `ICD-VER-001..009`. `ICD-CAP-004` (voltage domain and drive type are a property of the console connector module, readable by firmware; mismatching profiles refused; high-impedance the only state without a match), `ICD-CAP-005` (capabilities are provided across modules, not per channel), `SAD-D-006`, "Connector module" field in ICD-CON-001.
 
 #### RR-001-029 - Saturn (and Mega Drive) signal directions and the 3D Control Pad
 
@@ -686,7 +714,8 @@ documentation; either (a) restrict Saturn scope to the digital pad and remove th
 claim, or (b) correct the channel table (TL as output) and recompute sections 6.4 and 7.
 Add the Mega Drive idle-timeout and TH-edge timing to the profile's measurement list.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008; option (b): correct the channel table (TL as output) and recompute sections 6.4 and 7; add the Mega Drive idle-timeout and TH-edge timing to the profile's measurement list; the 3D pad is in scope.
+**Resolution (2026-11-18):** Applied. ICD section 8.2: Saturn is 7 channels per port (D0..D3 and TL out, TH and TR in), 14 for two ports (previously 6 and 12); GPIO budget recomputed in section 8.3 (Saturn 23 GPIO, same as Mega Drive). Mega Drive TH-edge/idle-timeout and Saturn TH/TR handshake measurement lists added to the ICD-CON-001 risk inventory. The TL direction itself still rests on secondary sources and must be verified against primary Saturn documentation.
 
 #### RR-001-030 - Signals needed by other requirements are missing from the channel counts
 
@@ -704,7 +733,8 @@ EIC's channel table intended to be the complete GPIO budget for the adapter?
 presence, commissioning enable, recovery, LEDs, bus UART/direction) and a total GPIO
 budget per console, to be compared with the RP2350 variant chosen (RR-001-002).
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008; apply suggested solution.
+**Resolution (2026-11-18):** Applied. `ICD-CAP-014` and ICD section 8.3: adapter system I/O (bus UART and direction 3, power sense 2, commissioning enable 1, recovery 1, LEDs 2 = 9) and total GPIO per console against the RP2350 variants. The totals are minimums: translator direction/enable lines depend on the translator selection and are not yet counted.
 
 #### RR-001-031 - No dynamic requirements: bit rates, edge rates, delay, skew, capacitance
 
@@ -725,7 +755,8 @@ numbers, and where will the measurements be recorded?
 and VOH/VOL required at the console, maximum added delay and capacitive budget; make
 EIC-VER-003..008 reference those numbers.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008; apply suggested solution.
+**Resolution (2026-11-18):** Structure applied; numbers pending. `ICD-CAP-015`, ICD section 8.4 (nominal signalling rate leads per console), a "Dynamics" field in ICD-CON-001 (rate and tolerance, VIH/VIL and VOH/VOL, rise/fall time, added delay, skew, capacitance), and `ICD-CAP-009` (auto-direction translators not used on open-drain bidirectional lines without measurement). The per-console limits cannot be invented; they come from the supplements, so `ICD-VER-003..008` are not executable until then.
 
 #### RR-001-032 - Dreamcast: bidirectional "Digital" mode is undefined; presence detection not budgeted
 
@@ -742,7 +773,8 @@ other function beyond the two data lines?
 **Suggested solution.** Fill in drive type, levels and the presence/sense line from the
 primary Maple documentation, and add the missing line(s) to the channel count.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008; apply suggested solution.
+**Resolution (2026-11-18):** Partly applied; evidence needed. The presence/sense line is budgeted as a placeholder of one channel per port (+2, to be confirmed) in ICD sections 8.2 and 8.3, and the ICD-CON-001 Dreamcast row now states that drive type, levels and pull-up arrangement come from primary Maple documentation. Those values are not filled in because no primary Maple document has been consulted; this remark stays open for the Dreamcast profile gate.
 
 #### RR-001-033 - Connector voltages, pull-up ownership and the "3.3 V / 5 V" assumption
 
@@ -763,7 +795,8 @@ max), pull-up location and value, and the translator or clamp approach; add a ru
 "adapter adds no pull-up on a line that the console already pulls up" and require
 measurements on at least one console of each family before approval.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008; apply suggested solution.
+**Resolution (2026-11-18):** Specification applied; S1 gate closes with measurements. ICD-CON-001 "Electrical" field now requires voltage range (min/typ/max), pull-up location and value, and the translator or clamp approach per console and signal; `ICD-CAP-010` (the adapter adds no pull-up on a console-pulled line); `ICD-CAP-016` and section 8.5 keep the power values as unverified leads and drop the "3.3 V or 5 V only" assumption; the "Evidence" field requires measurements on at least one console of each family before approval.
 
 #### RR-001-034 - Power source and grounding/isolation decision must precede any multi-console connection
 
@@ -785,7 +818,8 @@ a decision (SAD-O-002) before any bench setup beyond a single console, and harmo
 the wording of EIC 4.5 and ICD-PWR-002 ("not directly connected" versus "protected
 derived supply").
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Specification applied; S1 gate closes with the ICD-QUAL-001 power tests. `SAD-P-010` records the default (external adapter power, sense-only console power, isolated RS-485 interface and isolated power at every adapter); ICD-PWR-002 and `ICD-CAP-012` harmonised so console rails are never tied to internal logic or to each other, with a controlled exception route; ICD-NET-001 ground-reference row; PS-TIMING counts isolation delay inside the 20 us and 50 us allowances (`ICD-VER-020`); `SAD-O-002` reduced to connector, cable, supply units and confirmation by test. Recorded as class P (owner-approved default) because it is unverified.
 
 #### RR-001-035 - No electrical capability specification for the hub
 
@@ -802,7 +836,8 @@ for devices such as fight sticks and wheels, and what is its power input?
 table to the ICD (ports, current per port, protection, supply input, transceiver,
 indicator and button I/O).
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - see RR-001-008 and RR-001-004; apply suggested solution.
+**Resolution (2026-11-18):** Applied as a hub baseline table in the ICD (`ICD-HUB-001`: USB host behind a hub IC, two downstream ports, 500 mA per port, external 5 V supply, isolated bus transceiver, local I/O, protection), with `ICD-VER-018` and `ICD-VER-019`. The supply current figure (about 2 A) is a placeholder for the first power budget.
 
 #### RR-001-036 - Installation constraints: maximum bus length, number of consoles, topology
 
@@ -819,7 +854,8 @@ all depend on it.
 adapters and cable length (for example up to 10 adapters, up to 15 m trunk) and use it
 for the first harness calculation.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. Class-P `SRS-SYS-008` (typical installation: up to 10 adapters on a trunk of up to 15 m; larger installations need their own qualification) and the ICD-NET-001 cable/node-loading row now use it for the first harness calculation.
 
 ---
 
@@ -842,7 +878,8 @@ prototype?
 minimum UI (for example physical selector plus indicator for the first prototype) and a
 section for environmental/compliance constraints classed O or F where undecided.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution. Initial draft idea: a hub UI with a small display showing the button mapping with target console button names and, for the Dreamcast, the VMU screen.
+**Resolution (2026-11-18):** Applied. New SRS section 8: `SRS-UI-001/002` (physical selector and indicators for the first prototype), `SRS-UI-003` (display with adapter-supplied console button names; consistent with SRS-IN-001 because the names are adapter metadata), `SRS-UI-004` (VMU screen, Future, `SAD-F-006`), `SRS-CFG-002` (hub roster and assignment persistence), and class-O items `SRS-SUP-001`, `SRS-ENV-001..003`, `SRS-LIC-001`; `SRS-V-010`; SAD-COMP-HUB UI row updated.
 
 #### RR-001-038 - First console and controller mode not yet chosen, while the EIC sizes all ten
 
@@ -860,7 +897,8 @@ Mega Drive) by electrical simplicity, timing difficulty and resource load on the
 RP2350, then select one. Keep the EIC as the long-term envelope; do not let it drive
 first-prototype scope.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution. Sega Saturn could be a good first option.
+**Resolution (2026-11-18):** Comparison applied; selection left open. SAD section 3.1 compares SNES, Mega Drive, Saturn and PlayStation 2 (channels, GPIO, electrical and timing difficulty, coverage gaps) and `SAD-O-001` records the Saturn leaning. Finding for the owner: Saturn and Mega Drive exceed the 70 % GPIO margin on RP2350A (23 of 30) and Saturn needs digital L2/R2 for common layouts. The first console is chosen at development-guide Step 3.
 
 #### RR-001-039 - Development guide alignment
 
@@ -876,7 +914,8 @@ feeding Step 2?
 **Suggested solution.** Reference [RPN-RVP](../REVIEW-PROCESS.md) in Steps 1 and 2 and
 in Step 7, and add "review record" to the session-close checklist.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. The development guide references RPN-RVP in Steps 1, 2 and 7 (review as Step 1b feeding Step 2), the session-close rule includes review records, current position and next-session text updated, and the document-control rule (RR-001-010) is added.
 
 #### RR-001-040 - Discoverability of review documents
 
@@ -891,60 +930,83 @@ specifications?
 **Suggested solution.** Add a "Process and review" table (development guide, review
 process, latest review record) to the README, kept separate from the specification table.
 
-**Owner response:** _(pending)_  **Resolution:** _(next cycle)_
+**Owner response:** Accept - apply suggested solution.
+**Resolution (2026-11-18):** Applied. README has a separate "Process and review" table (development guide, RPN-RVP, REVIEW-001), distinct from the specification table.
 
 ---
 
-## 5. Disposition table (to be completed by the owner and then the corrector)
+## 5. Disposition table
 
-| ID | Owner decision (Accept / Modify / Reject / Defer) | Resolution reference | Status |
-|---|---|---|---|
-| RR-001-001 | Accept | Apply suggested solution | Answered |
-| RR-001-002 | Accept | Apply suggested solution | Answered |
-| RR-001-003 | Accept | Don't rely on the chosen MCU 5V capabilities. Rely only on external translators when applicable. | Answered |
-| RR-001-004 | Accept | The RP2350 MCU family has only a single USB 1.1 interface. To satisfy SRS-SYS-002, the RPN hub can have a USB hub IC thus allowing for two player USB input controller devices. | Answered |
-| RR-001-005 | Accept | Apply suggested solution option A (recommended for scope): the Xbox adapter implements two USB device ports (matching the two-player limit); the other two console ports are left unconnected (the console sees no controller). | Answered |
-| RR-001-006 | Accept | Apply suggested solution | Answered |
-| RR-001-007 | Accept | Apply suggested solution | Answered |
-| RR-001-008 | Accept | The EIC was added adhock without any consideration for project standards. It shall be seen as engineering notes and deprecated as an individual document. Its contents when found usefull with the system intent shall be used. When in conflict, the existing documentation takes precedence. | Answered |
-| RR-001-009 | Accept | See RR-001-008 | Answered |
-| RR-001-010 | Accept | Apply suggested solution | Answered |
-| RR-001-011 | Accept | See RR-001-008 | Answered |
-| RR-001-012 | Accept | See RR-001-008 | Answered |
-| RR-001-013 | Accept | Apply suggested solution | Answered |
-| RR-001-014 | Accept | Apply suggested solution | Answered |
-| RR-001-015 | Accept | Apply suggested solution | Answered |
-| RR-001-016 | Accept | Apply suggested solution | Answered |
-| RR-001-017 | Accept | Apply suggested solution | Answered |
-| RR-001-018 | Accept | Apply suggested solution | Answered |
-| RR-001-019 | Accept | Apply suggested solution | Answered |
-| RR-001-020 | Accept | Apply suggested solution | Answered |
-| RR-001-021 | Accept | Apply suggested solution | Answered |
-| RR-001-022 | Accept | Apply suggested solution | Answered |
-| RR-001-023 | Accept | Apply suggested solution | Answered |
-| RR-001-024 | Accept | Apply suggested solution | Answered |
-| RR-001-025 | Accept | Apply suggested solution | Answered |
-| RR-001-026 | Accept | Apply suggested solution | Answered |
-| RR-001-027 | Accept | Apply suggested solution | Answered |
-| RR-001-028 | Accept | See RR-001-008. Apply suggested solution | Answered |
-| RR-001-029 | Accept | See RR-001-008. Apply suggested solution (b): correct the channel table (TL as output) and recompute sections 6.4 and 7. Add the Mega Drive idle-timeout and TH-edge timing to the profile's measurement list. The 3D pad is in scope. | Answered |
-| RR-001-030 | Accept | See RR-001-008. Apply suggested solution | Answered |
-| RR-001-031 | Accept | See RR-001-008. Apply suggested solution | Answered |
-| RR-001-032 | Accept | See RR-001-008. Apply suggested solution | Answered |
-| RR-001-033 | Accept | See RR-001-008. Apply suggested solution | Answered |
-| RR-001-034 | Accept | Apply suggested solution | Answered |
-| RR-001-035 | Accept | See RR-001-008 and RR-001-004. Apply suggested solution | Answered |
-| RR-001-036 | Accept | Apply suggested solution | Answered |
-| RR-001-037 | Accept | Apply suggested solution. Initial draft idea is to have a hub UI with a small display showing button mapping with target console button names, and in the case of the dreamcast show the VMU screen. | Answered |
-| RR-001-038 | Accept | Apply suggested solution. Sega saturn could be a good first option. | Answered |
-| RR-001-039 | Accept | Apply suggested solution | Answered |
-| RR-001-040 | Accept | Apply suggested solution | Answered |
+Owner columns are as entered by the project owner. The corrector's resolution
+column and status were completed on 2026-11-18. Status values: **Applied** (text
+changed; awaits the closure check of the re-review), **Applied - evidence
+pending** (text changed, but a datasheet check, measurement or primary source is
+still required), **Partly applied** (owner input or evidence needed before the
+remark can close). No remark is **Closed** until the re-review (RPN-RVP section 9).
+
+| ID | Owner decision (Accept / Modify / Reject / Defer) | Owner answer (as entered) | Resolution (corrector) | Status |
+|---|---|---|---|---|
+| RR-001-001 | Accept | Apply suggested solution | SRS-HW-005, SRS-HW-001 retired, SAD-D-004, SAD-R-008/O-003, ICD, PS | Applied |
+| RR-001-002 | Accept | Apply suggested solution | SAD-P-007, ICD-CON-001 resource table and 70 % rule, ICD 8.3 | Applied - evidence pending |
+| RR-001-003 | Accept | Don't rely on the chosen MCU 5V capabilities. Rely only on external translators when applicable. | SRS-HW-006, ICD-CAP-003, SAD-D-006, ICD-PLAT-001, ICD-VER-015 | Applied - evidence pending |
+| RR-001-004 | Accept | The RP2350 MCU family has only a single USB 1.1 interface. To satisfy SRS-SYS-002, the RPN hub can have a USB hub IC thus allowing for two player USB input controller devices. | SAD-P-009, ICD-PWR-001, ICD-HUB-001, ICD-VER-018/019 | Applied - evidence pending |
+| RR-001-005 | Accept | Apply suggested solution option A (recommended for scope): the Xbox adapter implements two USB device ports (matching the two-player limit); the other two console ports are left unconnected (the console sees no controller). | SRS-SYS-009, SAD-P-008, SAD-ADAPT-001, ICD-CAP-011 | Applied |
+| RR-001-006 | Accept | Apply suggested solution | SAD-P-003, PS-DISCOVERY, PS-TRANSACTION | Applied - evidence pending |
+| RR-001-007 | Accept | Apply suggested solution | SRS-UPD-004, SAD-F-004, SAD-O-008, PS-SVC-UPDATE | Applied |
+| RR-001-008 | Accept | The EIC was added adhock without any consideration for project standards. It shall be seen as engineering notes and deprecated as an individual document. Its contents when found usefull with the system intent shall be used. When in conflict, the existing documentation takes precedence. | EIC deprecated; content merged into ICD 8-11; SAD-D-005 | Applied |
+| RR-001-009 | Accept | See RR-001-008 | ICD-CAP-001, SAD-D-005 | Applied |
+| RR-001-010 | Accept | Apply suggested solution | Dates and history rows; development guide rule 8 | Applied |
+| RR-001-011 | Accept | See RR-001-008 | SRS-SYS-009, SAD-P-008, SAD-F-001, ICD 8.2, ICD-CON-001 port mapping | Applied |
+| RR-001-012 | Accept | See RR-001-008 | ICD-CAP-001..017, ICD-VER-001..020, SRS-V-006 | Applied - evidence pending |
+| RR-001-013 | Accept | Apply suggested solution | SRS glossary and wording fixes | Applied |
+| RR-001-014 | Accept | Apply suggested solution | ICD-REF-001, ICD 8.2-8.5 confidence flags | Partly applied (retrieval dates and primary sources needed) |
+| RR-001-015 | Accept | Apply suggested solution | SRS-V-001/003/005, new SRS-V-009 and V-010 | Applied |
+| RR-001-016 | Accept | Apply suggested solution | PS-TIMING per-opcode timeouts, cycle budget, admission rule; SAD-SCHED-001 | Applied |
+| RR-001-017 | Accept | Apply suggested solution | SRS-PERF-004/005, SRS-OWN-012, SRS-V-003/007 | Applied (class P values for owner confirmation) |
+| RR-001-018 | Accept | Apply suggested solution | SAD-O-009 gate and fallback order; PS-TIMING note | Applied - evidence pending (measurement) |
+| RR-001-019 | Accept | Apply suggested solution | PS-DISCOVERY retry rule and commissioning counter | Applied |
+| RR-001-020 | Accept | Apply suggested solution | Persisted address in PS-DISCOVERY, SAD states, SAD-P-003 | Applied |
+| RR-001-021 | Accept | Apply suggested solution | SRS-NET-010, ICD-NET-001 clock and baud row, ICD-VER-017 | Applied - evidence pending (values to confirm) |
+| RR-001-022 | Accept | Apply suggested solution | SRS-IN-011, SAD-D-007, PS ROUTES, ICD-CON-001 | Applied |
+| RR-001-023 | Accept | Apply suggested solution | SRS-OWN-013, SAD-D-008, PS CAPS kind 4, ICD-CON-001, ICD-VER-016 | Applied - evidence pending (per-profile measurement) |
+| RR-001-024 | Accept | Apply suggested solution | PS STATUS and CAPS corrections; SAD adapter states | Applied |
+| RR-001-025 | Accept | Apply suggested solution | PS-TIMING 10 ms poll cadence, PS-SVC-FEEDBACK, SAD-FB-001 | Applied |
+| RR-001-026 | Accept | Apply suggested solution | SAD-MAP-002, PS-DATA-INPUT note, SAD-F-005 | Applied |
+| RR-001-027 | Accept | Apply suggested solution | SRS-IN-012, SAD-P-011, SAD-F-005, SAD-O-010 | Partly applied (owner to name two devices) |
+| RR-001-028 | Accept | See RR-001-008. Apply suggested solution | ICD-CAP-004/005, SAD-D-006 | Applied |
+| RR-001-029 | Accept | See RR-001-008. Apply suggested solution (b): correct the channel table (TL as output) and recompute sections 6.4 and 7. Add the Mega Drive idle-timeout and TH-edge timing to the profile's measurement list. The 3D pad is in scope. | ICD 8.2 and 8.3 recomputed; ICD-CON-001 measurement lists | Applied - evidence pending (primary Saturn documentation) |
+| RR-001-030 | Accept | See RR-001-008. Apply suggested solution | ICD-CAP-014, ICD 8.3 | Applied |
+| RR-001-031 | Accept | See RR-001-008. Apply suggested solution | ICD-CAP-009/015, ICD 8.4, ICD-CON-001 dynamics | Partly applied (limits come from the supplements) |
+| RR-001-032 | Accept | See RR-001-008. Apply suggested solution | Presence channel placeholder, ICD-CON-001 Dreamcast row | Partly applied (primary Maple documentation needed) |
+| RR-001-033 | Accept | See RR-001-008. Apply suggested solution | ICD-CAP-010/016, ICD-CON-001 electrical and evidence fields | Applied - evidence pending (measurements) |
+| RR-001-034 | Accept | Apply suggested solution | SAD-P-010, ICD-PWR-002, ICD-CAP-012, PS-TIMING isolation rule, ICD-VER-011/020 | Applied - evidence pending (tests) |
+| RR-001-035 | Accept | See RR-001-008 and RR-001-004. Apply suggested solution | ICD-HUB-001, ICD-VER-018/019 | Applied |
+| RR-001-036 | Accept | Apply suggested solution | SRS-SYS-008, ICD-NET-001 | Applied |
+| RR-001-037 | Accept | Apply suggested solution. Initial draft idea is to have a hub UI with a small display showing button mapping with target console button names, and in the case of the dreamcast show the VMU screen. | SRS section 8 (UI, CFG-002, SUP, ENV, LIC), SAD-F-006 | Applied |
+| RR-001-038 | Accept | Apply suggested solution. Sega saturn could be a good first option. | SAD section 3.1 comparison; SAD-O-001 | Applied (selection remains at Step 3) |
+| RR-001-039 | Accept | Apply suggested solution | Development guide | Applied |
+| RR-001-040 | Accept | Apply suggested solution | README | Applied |
+
+Remarks the corrector could not fully apply, with the reason: RR-001-014
+(source revision and retrieval dates were never recorded), RR-001-027 (the two
+first devices are an owner choice), RR-001-031 and RR-001-032 (numeric limits and
+Dreamcast drive details need approved supplements and primary Maple
+documentation). Deferred content has register entries: `SAD-F-004`, `SAD-F-005`,
+`SAD-F-006` and the four-port part of `SAD-F-001`.
+
+New class-P values introduced by the corrections for the owner to confirm:
+SRS-SYS-008 (10 adapters, 15 m), SRS-PERF-004 (16.7 ms), SRS-PERF-005 (12 ms),
+SRS-OWN-012 (500 ms), SRS-NET-010 (+/-100 ppm) and the +/-0.5 % baud budget,
+the 64-entry CAPS bound, the 10 ms feedback cadence, and the hub baseline figures
+in ICD-HUB-001.
 
 ## 6. Gates carried forward
 
 | Gate | Blocked until |
 |---|---|
-| Step 2 reconciliation complete | S2 remarks of themes A, B and F answered |
-| Step 3 prototype scope | RR-001-011, -017, -022, -026, -027, -037, -038 answered |
-| Step 4 any hardware connection | All S1 remarks closed: RR-001-003, -023, -028, -033, -034 |
-| Step 5 protocol tests | RR-001-016, -018, -019, -021, -024 closed |
+| Step 2 reconciliation complete | Re-review closure check of the correction cycle (all remarks answered and applied as above) |
+| Step 3 prototype scope | RR-001-011, -017, -022, -026, -027, -037, -038 closed; first console and two HID devices chosen (`SAD-O-001`, `SAD-O-010`); RR-001-017 class-P values confirmed |
+| Step 4 any hardware connection | All S1 remarks closed with evidence: RR-001-003 (`ICD-PLAT-001` populated, `ICD-VER-015`), -023 (per-profile `ICD-VER-016`), -028 (`ICD-VER-001..009`), -033 (measurements on one console per family), -034 (`ICD-QUAL-001` power and isolation tests) |
+| Step 5 protocol tests | RR-001-016, -018 (`SAD-O-009` measurement), -019, -021 (`ICD-VER-017`), -024 closed |
+| Dreamcast profile | RR-001-032 (primary Maple documentation) |
+| Before advertising Update | `SAD-F-004` update-profile supplement |

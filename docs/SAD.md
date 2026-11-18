@@ -5,12 +5,13 @@
 | Document ID | RPN-SAD |
 | Revision | 0.1 |
 | Status | Draft - architecture exploration |
-| Date | 2026-10-23 |
+| Date | 2026-11-18 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-ICD](ICD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
 |---|---|
 | 0.1 | Initial architecture review, decision register, safe two-player ownership, framework boundaries and scheduling model. |
+| 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform, document-authority, hardware-isolation, port-scope and USB decisions registered; persistent addresses, per-profile neutralisation bound, multi-processor adapters, controller-coverage matrix, first-console comparison, scheduler admission rule and feedback cadence added. |
 
 ## 1. Architecture intent
 
@@ -27,22 +28,22 @@ No source firmware exists in this repository yet.
 
 | Review ID | Finding or unresolved assumption | Resolution in this draft |
 |---|---|---|
-| SAD-R-001 | One MCU per adapter is not proven for two ports, accessories and USB-device consoles | One logical adapter may use multiple processors; profile-level resource and timing gates |
+| SAD-R-001 | One MCU per adapter is not proven for two ports, accessories and USB-device consoles | One logical adapter may use multiple processors under one network node (`SAD-ADAPT-001`); the Original Xbox adapter uses one processor per emulated USB device port; profile-level resource and timing gates |
 | SAD-R-002 | A generic input model can still leak console-specific mapping into the hub | Positional generic controls; mappings and virtual peripherals owned by adapter; device and virtual descriptors separated |
 | SAD-R-003 | Broadcast discovery on half-duplex RS-485 can collide; CRC is not reliable arbitration | Commissioning by a known 128-bit UID; roster scanning thereafter; automatic unknown-node enumeration deferred |
 | SAD-R-004 | "Active console" does not define exclusivity, particularly after lost acknowledgements | Explicit single-owner lease, generation fencing, boot guard and revoke-or-expire switching |
 | SAD-R-005 | A player assignment is not an ownership grant | Routes configured while inhibited; arm is a separate operation; atomic two-player snapshots |
 | SAD-R-006 | A network storage service cannot satisfy console accessory deadlines | Local authoritative storage; export/import only in exclusive maintenance in this profile |
 | SAD-R-007 | Service-oriented architecture can imply unnecessary RPC or a plug-in framework | Fixed bounded opcode groups plus a service bitmap and descriptors; no dynamic broker or runtime plug-ins |
-| SAD-R-008 | RP2040 preference does not establish USB-host capacity or flash-time isolation | Qualify host hubs/resources; allow alternate silicon; prove flash/console coexistence |
+| SAD-R-008 | Platform choice does not by itself establish USB-host capacity or flash-time isolation | RP2350 family is mandated (`SAD-D-004`); the single native USB controller is extended by a hub IC (`SAD-P-009`); prove flash/console coexistence and the per-profile resource margin |
 | SAD-R-009 | 1 Mbit/s sounds ample but management replies and turnaround consume deadlines | Two-player exchange budget and deadline-based bulk admission in PS-TIMING |
 | SAD-R-010 | Emulating accessory storage is not emulating the complete accessory | Explicit supported peripheral functions; no implied VMU screen/clock or complete Pak coverage |
 | SAD-R-011 | A shared bus may join console grounds and supplies unintentionally | ICD power/isolation gates; no approved connector or common-ground deployment yet |
 | SAD-R-012 | CRC, version negotiation and firmware recovery do not provide authentication | Trusted local bus assumption, physical update enable, security boundaries stated explicitly |
 
-There were no previous four-document definitions to reconcile. These findings
-review the supplied project architecture, rather than assert defects in an
-existing implementation.
+These findings review the supplied project architecture, rather than assert
+defects in an existing implementation. Findings and answers from formal reviews
+are recorded in [docs/reviews/](reviews/REVIEW-001.md).
 
 ## 3. Decision register
 
@@ -55,28 +56,61 @@ design. Numeric protocol choices remain provisional as a group.
 | SAD-D-001 | C | Hub has no console-specific wire-protocol logic; adapters own console semantics | Component dependency review |
 | SAD-D-002 | C | Two independent players; multiple powered consoles; one selected console owner | Ownership and two-port tests |
 | SAD-D-003 | D | Console timing and accessory I/O use local state, not bus round trips | Per-console timing analysis |
+| SAD-D-004 | C | The hub and every adapter processor are members of the RP2350 family (SRS-HW-005). An exception requires documented evidence that the family cannot meet a named requirement, owner approval and a register entry naming the adapter or profile, scope and evidence | Per-profile resource table; exception entries |
+| SAD-D-005 | D | Document authority: the ICD is the single electrical authority. The former RPN-EIC is deprecated engineering notes whose useful content now lives in the ICD; where documents conflict the established SRS/ICD/SAD/PS text takes precedence. ICD-CAP is a sizing baseline, never an approval to wire; ICD-CON-001 supplements hold approved per-console facts and may narrow but not exceed the baseline without an ICD change | ICD section 8; EIC deprecation notice |
+| SAD-D-006 | D | No console-facing signal relies on MCU 5 V tolerance or internal pulls; voltage domain and drive type are fixed by each console connector module, identified to firmware, and firmware refuses a mismatching profile (SRS-HW-006, ICD-CAP-003/004) | ICD-VER-001..006, ICD-VER-015 |
+| SAD-D-007 | D | Every profile declares a default idle peripheral identity and whether live identity change is allowed; the route selects mapping, not identity (SRS-IN-011) | ICD-CON-001 supplement review |
+| SAD-D-008 | D | Every profile declares `neutralisation_bound_us` (CAPS kind 4); hub drain and uncertain-transfer guards derive from the maximum over enrolled adapters; a profile that cannot meet the 1 ms global bound is not approved with the provisional timing (SRS-OWN-013) | ICD-VER-016, PS-TIMING |
 | SAD-P-001 | P | RS-485, 1 Mbit/s, one master and up to 31 addresses | Harness, loading and scheduling qualification |
 | SAD-P-002 | P | Compact fixed services over COBS/CRC framing, 192-byte payload bound | Codec and interop tests; revise together with PS |
-| SAD-P-003 | P | Commission unassigned nodes by scanned/manually supplied UID; no broadcast contention algorithm | Requires provisioning and accessible UID label/debug readout |
-| SAD-P-004 | P | 5 ms snapshots; 100 ms ownership lease; 110 ms reboot/uncertain-transfer guard | Latency and drift tests; clock bound in PS-TIMING |
+| SAD-P-003 | P | Commission unassigned nodes by scanned/manually supplied UID; no broadcast contention algorithm. The 128-bit UID is a vendor-defined value held in locked OTP on production RP2350 parts (prototype boards may use a documented non-OTP method, marked as prototype); the assigned address is persisted by the adapter and physical commissioning enable is needed only for first install, UID mismatch or address conflict | Provisioning procedure, accessible UID label/debug readout, persisted-address tests |
+| SAD-P-004 | P | 5 ms snapshots with per-opcode response timeouts and admission of non-input exchanges only if their timeout path fits before the next input slot; feedback polled every 10 ms while armed; 100 ms ownership lease; 110 ms reboot/uncertain-transfer guard | Latency and drift tests; clock bound and cycle budget in PS-TIMING |
 | SAD-P-005 | P | One selected virtual peripheral per port; two routes max; no fan-out | Two-player prototype |
 | SAD-P-006 | P | Generic storage/configuration/update only in maintenance | Profile quiescence, durability and recovery tests |
-| SAD-O-001 | O | First console, exact hardware variants and first supported virtual peripherals | Owner selection before console implementation |
-| SAD-O-002 | O | Supply distribution, grounding versus galvanic isolation, connector and cable | Deployment survey and ICD-QUAL-001 |
-| SAD-O-003 | O | Hub USB-host topology, device list, radio and MCU choice | Two-device enumeration/report/feedback load prototype |
-| SAD-O-004 | O | Per-console MCU/PIO/USB split and timing limits | ICD-CON-001 supplements and traces |
-| SAD-O-005 | O | Local accessory media, configuration journal and update recovery mechanism | Power-fail and endurance analysis |
+| SAD-P-007 | P | Arm Cortex-M33 cores only. RP2350A (30 GPIO) is the default part; RP2350B (48 GPIO) is permitted only where a profile's resource table shows the need (more than 70 % of any resource in the worst two-port case on RP2350A); parts with stacked flash are permitted but not required. Part facts to be re-verified against the current datasheet | ICD-PLAT-001 register; per-profile resource tables |
+| SAD-P-008 | P | An adapter emulates two console ports (`SRS-SYS-009`); the Original Xbox adapter provides two USB device ports (the console sees no controller on its other two ports) using one processor per USB device port and one gateway processor that owns the RS-485 node (`SAD-ADAPT-001`) | Xbox profile supplement |
+| SAD-P-009 | P | Hub USB host uses the single native RP2350 USB controller behind a USB hub IC to serve two player devices; software (PIO) USB host is not counted on | ICD-VER-018, resource budget in ICD-HUB-001 |
+| SAD-P-010 | P | Default power architecture: each adapter externally powered, console power sense-only, and an isolated RS-485 interface (isolated transceiver and isolated power) at every adapter, with isolation delay included in `PS-TIMING` margins | ICD-QUAL-001 power and ground-loop tests; ICD-VER-011, ICD-VER-020 |
+| SAD-P-011 | P | First increment accepts USB HID input devices only (`SRS-IN-012`) | HID parse tests with the named devices |
+| SAD-O-001 | O | First console, exact hardware variants and first supported virtual peripherals. Owner's current leaning: Saturn ("could be a good first option"); candidates compared in section 3.1 | Owner selection at development-guide Step 3, before console implementation |
+| SAD-O-002 | O | Connector and cable, adapter and hub supply units and distribution; confirmation by test of the isolation and power defaults of `SAD-P-010` | Deployment survey and ICD-QUAL-001 |
+| SAD-O-003 | O | Hub device list and radio; USB host topology is set by `SAD-P-009` | Two-device enumeration/report/feedback load prototype |
+| SAD-O-004 | O | Per-console MCU/PIO/USB split and timing limits within the resource-table margin rule | ICD-CON-001 supplements and traces |
+| SAD-O-005 | O | Local accessory media, configuration journal, persisted-address record and update recovery mechanism | Power-fail and endurance analysis |
 | SAD-O-006 | O | Console activity sensing reliability and eligible auto-selection UI | Profile-specific sensing plus multi-console tests |
-| SAD-O-007 | O | Final button mappings, analog calibration and compatibility prompts | Profile usability tests; no silent lossy conversion |
-| SAD-O-008 | O | Firmware manifest/signature scheme and future untrusted administration | Threat model; network update disabled until a concrete profile exists |
-| SAD-F-001 | F | Bluetooth acquisition, actual wheel drivers, multitaps, more players, remote control | New scope and resource budgets |
+| SAD-O-007 | O | Final button mappings, analog calibration and compatibility prompts; end-to-end latency target for fight sticks | Profile usability tests; no silent lossy conversion |
+| SAD-O-008 | O | Firmware manifest/signature scheme and future untrusted administration. Deferred: not required for the first prototype (`SAD-F-004`) | Threat model; network update disabled until a concrete profile exists |
+| SAD-O-009 | O | Adapter processing budget for the INPUT response window (latest response start 250 us) on the chosen RP2350 part under worst-case console load. If too tight: first widen the per-opcode window (`PS-TIMING`), or, only with owner approval, acknowledge after validation but before installation while installation still completes before the next console-visible read and keeps SRS-IN-008 atomicity | Measured budget before protocol tests (development-guide Step 5) |
+| SAD-O-010 | O | The first two concrete HID devices (name, VID/PID, captured report descriptor) for the first prototype | Owner selection at Step 3 |
+| SAD-F-001 | F | Bluetooth acquisition, actual wheel drivers, multitaps, four-port console support, more players, remote control | New scope and resource budgets |
 | SAD-F-002 | F | Fully automatic unknown-node discovery and live coherent storage export | Justify complexity after baseline prototype |
 | SAD-F-003 | F | Separate Adapter Software Framework specification | Extract after two materially different working console drivers |
+| SAD-F-004 | F | Network firmware update: update-profile supplement (image format, signing, anti-rollback, recovery path, OTP policy with a prototype/production distinction) | Before any node advertises the Update service |
+| SAD-F-005 | F | Pressure-sensitive buttons (a negotiated minor adds an optional per-record extension, since the 0.1 record size is fixed) and USB protocols needing console-specific protocols or authentication | After the first profiles and the input-schema freeze |
+| SAD-F-006 | F | Hub display of the Dreamcast VMU screen (requires a new adapter-to-hub service) | After a Dreamcast profile exists |
 
 Dependency chain: console/peripheral coverage -> timing/resource budget -> MCU
 and storage choice -> power/isolation -> harness approval. Independently, USB
 device support -> host topology -> hub resource/power budget. The bus cadence
 and lease depend on measured clock and turnaround bounds, not the reverse.
+
+### 3.1 First-console candidate comparison (informative)
+
+Input to `SAD-O-001`; not a selection. Signal facts come from the secondary
+sources in `ICD-REF-001` and must be verified before use. GPIO totals use the
+baseline of `ICD-CAP-014` (two ports, 9 adapter system I/O, translator control
+lines not yet counted); the margin rule is 70 % of 30 GPIO = 21 on RP2350A.
+
+| Candidate | Console channels (two ports) | Total GPIO | Electrical simplicity | Timing difficulty | Other findings |
+|---|---:|---:|---|---|---|
+| SNES | 6 | 15 | Simplest: three signals per port, latch/clock shift register | Low (tens of kHz clock) | Fully covered by the generic model (4 face, 2 shoulders, Select/Start) |
+| Mega Drive | 14 | 23 | Seven signals per port, TH-multiplexed | Medium: six-button TH counting and idle timeout | Exceeds the 21-GPIO margin on RP2350A |
+| Saturn (owner's leaning) | 14 | 23 | Seven signals per port including the TL handshake output | Medium to high: TH/TR handshake; 3D Control Pad in scope | Exceeds the 21-GPIO margin on RP2350A (RP2350B or a split design); eight-button layouts need digital L2/R2 (`SAD-MAP-002`) |
+| PlayStation 2 | 10 | 19 | Open-drain outputs on 3.3 V-class lines | High: serial slave with ACK timing, pressure-capable modes | Coverage needs digital L2/R2 and pressure encoding (Future) |
+
+The envelope therefore shows that Saturn or Mega Drive would drive the first
+prototype to RP2350B and a larger resource budget, while SNES stays well inside
+RP2350A. The comparison is decision input only; the owner selects at Step 3.
 
 ## 4. Components and data flow
 
@@ -101,14 +135,14 @@ UI/configuration -> adapter descriptors + explicit user decisions
 
 | Component | Responsibility and forbidden coupling |
 |---|---|
-| Device backend | Enumerate physical devices; parse reports, connection changes and capability limits; no console packet encoding |
+| Device backend | Enumerate physical devices behind the hub IC (`SAD-P-009`); parse HID reports, connection changes and capability limits (`SAD-P-011`); no console packet encoding |
 | Player manager | Bind one physical source per player initially; retain capabilities and most recent state; combining devices requires a future explicit policy |
 | Normaliser | Device-to-generic positions/axes, calibration and validity; no selected-console button labels |
 | Ownership manager | Select owner and execute safe transitions |
 | Route manager | Validate player/port uniqueness and advertised compatibility; select opaque peripheral/mapping IDs |
 | Bus master | Encode PS frames, one outstanding exchange, session/transaction lifecycle, scheduling and retries |
 | Management client | Read capabilities/status; configure and transfer storage/update data only in permitted states |
-| Diagnostics/UI | Show owner, routes, unknown activity, incompatible mappings, lost devices and persistent faults; never silently arm |
+| Diagnostics/UI | Local owner selection, player assignment and fault indication (`SRS-UI-001..003`); show owner, routes, unknown activity, incompatible mappings, lost devices and persistent faults; display console button names only from adapter-supplied metadata; never silently arm |
 
 Device descriptors may be internally richer than the bounded network input
 format. A device requiring controls outside `PS-DATA-INPUT` is unsupported in
@@ -140,6 +174,29 @@ UART/RS-485 -> bounded framing -> transaction/session dispatcher
 | Feedback endpoint | Translate console feedback to generic queued effects with port/player/generation |
 | Platform HAL | Time, watchdog, UART, GPIO/PIO/DMA, flash/storage and reset; explicit capabilities, not imaginary uniform hardware |
 | Diagnostics | Bounded counters, last fault and resource high-water marks |
+| Address store | Persisted assigned address (`PS-DISCOVERY`), written after the assignment reply and never inside a response window; if the node has no safe non-volatile store the address stays volatile and the node needs commissioning after every reset (prototype limitation) |
+
+### SAD-ADAPT-001: multi-processor adapters
+
+One adapter is one bus node (SRS-SYS-006) even when it contains several
+processors. A single **gateway processor** owns the RS-485 node, the UID, the
+address, the session, the lease and the neutralisation decision. Other processors
+(for example one per Original Xbox USB device port, because each RP2350 has one
+USB controller) are reached over an internal link (UART or SPI) owned by the
+gateway.
+
+- The gateway validates and maps INPUT, then forwards each port's already
+  validated snapshot over the internal link; no processor other than the gateway
+  accepts bus traffic.
+- The gateway enforces the lease. Every secondary processor also applies a local
+  deadline: loss of internal-link refresh within the profile's internal
+  deadline forces neutral controls, so link failure cannot leave live controls.
+- Inhibit, REVOKE and expiry reach secondary processors as an explicit neutral
+  command and as the absence of refresh; the profile's `neutralisation_bound_us`
+  covers the whole path.
+- Which processor is the gateway (a USB processor or a separate one), the
+  internal link and its timing are set by the profile supplement
+  (`ICD-CON-001`).
 
 ### SAD-MAP-001: mappings and capability ownership
 
@@ -159,8 +216,43 @@ An adapter mapping declares, for example, whether a fight stick direction drives
 a digital pad, whether stick input may substitute for a pad, and whether triggers
 map to digital buttons. Opposing directional inputs resolve to neutral per axis
 in profile 0.1. Thresholds, dead zones and hysteresis are versioned mapping data,
-not invented globally for every console. Peripheral identity changes require
-inhibition and possibly console reset/re-enumeration; a profile must state this.
+not invented globally for every console. Every profile declares a default idle
+identity and whether a live peripheral change is allowed (`SRS-IN-011`). The
+route selects mapping, not identity, so arming does not change what the console
+sees. A profile that allows a change must require inhibition and state whether
+console reset or re-enumeration is needed; the adapter rejects a ROUTES peripheral
+that would change the presented identity unless the profile allows it.
+
+### SAD-MAP-002: controller-coverage matrix (informative)
+
+Generic positions are those of `PS-DATA-INPUT`. Console elements are from the
+secondary sources of `ICD-REF-001` and must be verified against primary
+controller documentation before a profile is approved. "Gap" means a console
+element with no direct generic position; a mapping must then use an explicit,
+user-visible normalisation (SRS-IN-006/007).
+
+| Console / mode | Console elements | Coverage by the generic model | Gap or limitation |
+|---|---|---|---|
+| NES | D-pad, A, B, Select, Start | Complete (face, menu) | None |
+| SNES | D-pad, A, B, X, Y, L, R, Select, Start | Complete | None |
+| Mega Drive 3-button / 6-button | D-pad, A, B, C, Start; X, Y, Z, Mode | Four face plus shoulders and menu/aux | Six face buttons exceed four face positions; needs shoulders or digital L2/R2 |
+| Saturn digital pad | D-pad, A, B, C, X, Y, Z, L, R, Start | Four face, two shoulders, menu | Six face plus two shoulders needs digital L2/R2 (or equivalent) |
+| Saturn 3D Control Pad | Digital pad elements, analog stick, analog L/R, mode switch | Left stick; triggers 4/5 as analog | Same six-face gap; mode switch is adapter policy |
+| Nintendo 64 | D-pad, A, B, Z, L, R, Start, four C buttons, analog stick | Face, shoulders, left stick | Z and C buttons need explicit mapping (trigger/right-stick thresholds) |
+| GameCube | D-pad, A, B, X, Y, Z, Start, analog L/R plus click, main and C stick | Face, sticks, triggers 4/5 analog | Z and the L/R digital click need mapping; single on/off rumble motor |
+| Dreamcast | D-pad, A, B, X, Y, Start, analog stick, analog L/R | Face, left stick, triggers 4/5 | None known; VMU/rumble accessories separate |
+| PlayStation digital / DualShock | D-pad, cross, circle, square, triangle, L1, R1, L2, R2, Select, Start; sticks and L3/R3 | Face, shoulders, sticks, stick clicks, menu | L2/R2 are digital buttons: need digital L2/R2 or trigger threshold |
+| PlayStation 2 DualShock 2 | As above plus pressure on twelve buttons | As above | Pressure-sensitive buttons: Future (`SAD-F-005`) |
+| Original Xbox | D-pad, A, B, X, Y (analog), Black, White (analog), Start, Back, L3/R3, sticks, analog L/R | Face, shoulders, sticks, triggers 4/5 | Analog face/Black/White pressure: Future |
+| Fight stick (eight-button HID) | Four face, L1/R1, L2/R2 | Four face, two shoulders | L2/R2 as buttons needs digital L2/R2 |
+
+Generic positions to add before the PS input schema is frozen: digital left
+and right trigger buttons (L2/R2). The 0.1 wire format is unchanged (bits 16..31
+of `buttons` remain reserved and sent zero); the addition is a schema decision at
+the freeze, not a silent substitution. Pressure-sensitive buttons are Future
+(`SAD-F-005`): the 0.1 record size is fixed, so they need a negotiated minor.
+Required for the first profile: only the elements of the selected console and
+controller mode (`SAD-O-001`).
 
 ## 5. SAD-OWN-001: ownership and routing
 
@@ -204,25 +296,32 @@ is a possible future policy, not an implicit exception.
 `REVOKE` acknowledgement means neutral control state has been installed, pending
 input discarded and effects stopped. A console transaction already in progress
 may finish from its previously latched snapshot; per-console drivers shall bound
-that completion and prove neutral visibility within the 1 ms local budget, or
-the profile cannot claim the provisional lease/transfer timing. If a driver
-cannot provide that bound, safe switching requires a larger validated guard.
+that completion and declare it as `neutralisation_bound_us` in CAPS (kind 4),
+proved by measurement at the console connector to be visible to the console, not
+only installed in local state. A profile that cannot meet the 1 ms global bound
+cannot claim the provisional lease/transfer timing; safe switching for it
+requires a larger validated guard approved by the owner (`SAD-D-008`). The hub
+computes its guards from the maximum bound over enrolled adapters.
 
 The transfer engine starts a new ARM only after the old owner cannot still
-expose live controls. After a revoke ACK it waits a further 2 ms local drain guard before
-starting a new ARM; this exceeds the old console transaction's 1 ms completion
-bound even with both clocks at their worst qualified drift. If a revoke ACK is
-lost, wait the lease guard rather than assume success.
+expose live controls. After a revoke ACK it waits a further local drain guard,
+`max(2 ms, 2 x B)` where `B` is the largest declared bound, before starting a new
+ARM; with all bounds at most 1 ms this is 2 ms and exceeds the old console
+transaction's completion bound even with both clocks at their worst qualified
+drift. If a revoke ACK is lost, wait the lease guard rather than assume success.
 The 110 ms clock guard is measured from the latest possible acceptance of the
 last old renewal (including any uncertain ARM), after queued transmissions are
-cancelled: use response completion, or the full response timeout when no reply
-arrived, as defined in `PS-TIMING`. The transport must report that timestamp.
-With unknown old traffic on hub boot, start a full guard before any new grant.
+cancelled: use response completion, or the full per-opcode response timeout when
+no reply arrived, as defined in `PS-TIMING`. The transport must report that
+timestamp. With unknown old traffic on hub boot, start a full guard before any
+new grant. A manual switch completes within 500 ms nominal (`SRS-OWN-012`):
+the lost-revoke path costs the 110 ms guard plus route configuration and ARM.
 
 ### Adapter states
 
 ```text
-RESET -> UNASSIGNED
+RESET -> UNASSIGNED            (no valid persisted address)
+RESET -> INHIBITED             (valid persisted address; HELLO required before routes)
 UNASSIGNED --targeted address assignment--> INHIBITED or RECOVERY
 INHIBITED --compatible HELLO + valid ROUTES--> CONFIGURED
 CONFIGURED --ARM--> ARMED_NEUTRAL
@@ -236,10 +335,16 @@ any --reset--> RESET
 ```
 
 RECOVERY permits session negotiation and diagnostics, never ownership.
-The draft address is volatile; every adapter reboot requires commissioning
-again, including physical commissioning enable. This is a deliberate
-availability limitation of the provisional profile, to be reconsidered after
-the first prototype rather than hidden as automatic hot-plug recovery.
+UNASSIGNED is not addressable by STATUS; the hub reaches it only through
+commissioning. The assigned address is persisted by the adapter after the
+assignment reply, so an ordinary adapter or console power cycle returns the node
+to INHIBITED at its address and the hub confirms the UID in HELLO; no
+re-commissioning and no physical commissioning enable are needed, consistent
+with `SRS-OWN-010`. Physical commissioning enable is needed only for a first
+install, a UID mismatch or an address conflict, and asserting it clears the
+persisted address. A node without a safe non-volatile store keeps the address
+volatile and needs commissioning after every reset; that is a prototype
+limitation, not a profile feature.
 
 Generation is cleared when inhibition occurs; routes must be configured again.
 The adapter enforces its own monotonic lease even if network parsing stops.
@@ -265,9 +370,15 @@ change, but routes and mapping compatibility are validated anew.
 The hub uses a monotonic deadline scheduler, not an unrestricted management
 request queue. It selects the newest complete player samples at each 5 ms
 boundary, prioritises owner INPUT, then feedback/status, then bounded management
-chunks. No bulk transaction starts unless its worst-case completion, including
-timeout and guard, fits before the next reserved input slot. A maximum-size
-transaction may not fit while armed; reduce chunk size or defer to maintenance.
+chunks. Each opcode has its own response timeout (`PS-TIMING`), and a
+non-input exchange is admitted only if its worst-case timeout path ends before
+the next reserved input slot; the cycle budget table in `PS-TIMING` shows that
+INPUT, FEEDBACK_POLL and one STATUS all timing out still fits within 5 ms.
+An INPUT is never retried: a lost exchange is replaced by the next cycle's
+newest sample (`SRS-PERF-005`). No bulk transaction starts unless its worst-case
+completion, including timeout and guard, fits before the next reserved input
+slot. A maximum-size transaction may not fit while armed; reduce chunk size or
+defer to maintenance.
 
 Status scanning must satisfy the automatic-policy freshness window for the
 enrolled roster or automatic selection stays blocked. Management transfers may
@@ -289,7 +400,12 @@ not proof of real-time isolation.
 ## 7. SAD-FB-001: feedback
 
 Console drivers queue generic rumble/indicator events. They never write to the
-bus spontaneously. The hub polls, validates session/generation/port/player and
+bus spontaneously. The adapter reports the console's native effect richness (for
+example two magnitudes even when the console motor is on/off); the hub reduces
+that to what the bound physical device supports and reports any loss
+diagnostically. The hub polls the owner adapter every 10 ms while armed
+(interleaved in the cycle budget of `PS-TIMING`), validates
+session/generation/port/player and
 current physical binding, and translates to a supported device operation.
 Unsupported effects produce a diagnostic result rather than a false success.
 
@@ -320,10 +436,13 @@ semantics may differ from network export semantics and must be documented.
 The driver may not acknowledge console writes earlier than its advertised
 durability policy permits.
 
-Update services are optional. The generic protocol can transport an image but
+Update services are optional and Future for the first prototype (`SRS-UPD-004`,
+`SAD-F-004`). The generic protocol can transport an image but
 cannot invent a safe bootloader or signature format. A concrete advertised
 update profile must specify hardware compatibility, manifest, digest/signature,
-staging, activation and rollback/recovery. No safe profile -> no update service.
+staging, activation and rollback/recovery, and may use the RP2350 boot-ROM
+facilities only with a prototype/production distinction so that development
+boards are never irreversibly locked by accident. No safe profile -> no update service.
 Local physical update enable is required in this trusted-bus draft.
 
 ## 9. Common adapter framework
@@ -375,5 +494,5 @@ Recommended development sequence:
 6. Add persistence, maintenance and optional update only after recovery testing.
 7. Implement a second console and refine the common framework from evidence.
 
-All stages feed [SRS verification](SRS.md#8-verification-and-traceability).
+All stages feed [SRS verification](SRS.md#9-verification-and-traceability).
 No stage or document is marked validated by this draft.
