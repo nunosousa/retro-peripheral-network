@@ -13,6 +13,10 @@
 | 0.1 | Initial interface boundaries, provisional RS-485 profile and console electrical qualification gates. |
 | 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform text and datasheet/errata register; hub USB topology and hub baseline (ICD-HUB-001); isolated-bus and external-power default; profile-contract fields; console capability baseline (ICD-CAP) and verification entries (ICD-VER) merged from the deprecated EIC; source register (ICD-REF-001); clock/baud budget; installation figures. |
 | 0.1 (2026-11-18, owner decision) | UART rate raised to 2 Mbit/s and trunk length under 5 m: DMA requirement, transceiver/isolator rating, termination by measurement, baud-divider note, ICD-VER-020 criterion. |
+| 0.1 (2026-11-18, owner decision) | Memory-card accessory storage in scope: ICD-STO-001 sizing baseline and resource rules, ICD-CON-001 persistent-data field, ICD-CAP-018. |
+| 0.1 (2026-11-18, owner decision) | Two-bank FRAM layout and a shared SPI bus confirmed: ICD-STO-001 devices-and-bus rule with the contention budget, section 8.3 GPIO table (N64 16, Dreamcast 20), ICD-VER-021. |
+| 0.1 (2026-11-18, owner decision) | Emulated memory-card contents in external FRAM: ICD-STO-001 rules rewritten (flash kept as an exception), ICD-CAP-019, storage-device GPIO in section 8.3, ICD-VER-021. |
+| 0.1 (2026-11-18, owner decision) | Memory-card scope narrowed to controller-port accessories (N64 Controller Pak, Dreamcast VMU); dedicated-slot cards and the Xbox Memory Unit out of scope; ICD-CAP-018 and the ICD-STO-001 table revised; the card-slot GPIO estimate withdrawn. |
 
 Classification and normative language follow [RPN-SRS section 1](SRS.md#1-purpose-and-interpretation).
 No connector pinout or console voltage table in this draft is approved for wiring.
@@ -43,9 +47,9 @@ Adapter local persistent media -------ICD-STO-001
 | ICD-PWR-001 | RPN operating power | Power distribution, budgeting and protection; hub and adapter power |
 | ICD-PWR-002 | Console power and sensing | Never parallel console supplies; sense-only default; per-console qualification required |
 | ICD-CON-001 | Adapter to console ports | Profile-specific electrical and timing boundary |
-| ICD-CAP-001..017 | Console electrical capability baseline | Sizing baseline and common capabilities (section 8); not an approval to wire |
+| ICD-CAP-001..019 | Console electrical capability baseline | Sizing baseline and common capabilities (section 8); not an approval to wire |
 | ICD-HUB-001 | Hub electrical baseline | Hub USB, power, bus and local I/O (section 9) |
-| ICD-VER-001..020 | Verification entries | Pass criteria for the capabilities and interfaces above (section 10) |
+| ICD-VER-001..021 | Verification entries | Pass criteria for the capabilities and interfaces above (section 10) |
 | ICD-PLAT-001, ICD-REF-001 | Platform and source registers | RP2350 datasheet/errata register and source provenance (section 11) |
 | ICD-STO-001 | Adapter persistent storage | Local accessory/configuration/update storage; technology profile-specific |
 | ICD-DBG-001 | Local recovery/debug | Required recoverability, connector/access control open |
@@ -203,7 +207,7 @@ It shall include the following before electrical implementation is approved:
 | Neutralisation | `neutralisation_bound_us` and the measurement points at which neutral state becomes visible to the console after REVOKE, including any in-flight console transaction (`SRS-OWN-013`, `ICD-VER-016`) |
 | Resources | Resource table on the chosen RP2350 variant: GPIO (console channels plus system I/O of `ICD-CAP-014`), PIO state machines, DMA channels, interrupts, RAM, USB controllers and storage for every allowed two-port combination. Margin rule: no more than 70 % of any resource in the worst two-port combination |
 | Peripheral behaviour | Identification, modes, mapping, neutral/disconnected state, feedback and accessories |
-| Persistent data | Local geometry, write/flush policy, endurance and recovery semantics |
+| Persistent data | Memory accessory (if any): type, console-visible capacity, geometry and identity; external storage device (part, capacity, interface; one per port on a shared bus), bank layout, shared-bus access time under contention, torn-write and power-fail behaviour, endurance figure against the worst-case write rate, console access time against the console's response limit, any RAM cache, maintenance transfer time; behaviour when absent or being maintained (`ICD-STO-001`, `SRS-STO-005..008`) |
 | Evidence | Trace captures, test setup, equipment, firmware version and unsupported cases; measurements on at least one console of each family before approval; source register entries with revision and retrieval date |
 
 The following is a risk inventory, **not** a pinout or validated protocol table:
@@ -211,17 +215,19 @@ The following is a risk inventory, **not** a pinout or validated protocol table:
 | Family | Console-local engineering questions |
 |---|---|
 | NES / SNES | Shift-register/latch/clock behaviour, voltage translation, two-port sampling and any nonstandard controllers; a latched shift register delivers its 16 bits over roughly 200 us, so the neutralisation measurement spans a full read |
-| N64 / GameCube | Bidirectional timing, turnaround and line drive; N64 accessory selection and storage/rumble behaviour; GameCube analog controls; neutral visibility after a transaction already started |
+| N64 / GameCube | Bidirectional timing, turnaround and line drive; N64 Controller Pak read/write timing and its 32 KiB image; rumble behaviour; GameCube analog controls; neutral visibility after a transaction already started |
 | Mega Drive | Multiplexed controller selection, three/six-button modes and mode timing. Measurement list: TH-edge timing and the six-button pad idle timeout after which the TH count resets |
 | Saturn | Peripheral identification, digital/analog modes and multi-line timing; the 3D Control Pad is in scope, so the TL handshake output and TH/TR request timing are measured. Measurement list: TH/TR handshake edges and response timing, and mode behaviour |
-| Dreamcast | Maple implementation resources and two-player/peripheral topology; drive type, levels, pull-up arrangement and any presence/sense pin to be taken from primary Maple documentation; VMU storage versus display/audio/clock completeness |
-| PlayStation / PlayStation 2 | Serial handshake and response timing, digital/analog/pressure-capable modes, motor requests and accessory scope |
+| Dreamcast | Maple implementation resources and two-player/peripheral topology; drive type, levels, pull-up arrangement and any presence/sense pin to be taken from primary Maple documentation; VMU memory emulation (128 KiB flash, block geometry and format) is in scope per port; VMU display/audio/clock completeness is not (`SRS-UI-004`) |
+| PlayStation / PlayStation 2 | Serial handshake and response timing, digital/analog/pressure-capable modes, motor requests and accessory scope (memory cards are out of scope: dedicated slot, no shared signals) |
 | Original Xbox | USB-device-side implementation, controller descriptors and compatibility/authentication behaviour to investigate; separate from the hub's USB-host role. Two emulated USB device ports, each on its own processor behind one gateway (`SAD-P-008`, `SAD-ADAPT-001`); the report already queued in a controller endpoint must be covered by the neutralisation measurement |
 
 Adapters shall emulate the console interface, not attempt to electrically
 forward a modern controller's wires. One virtual peripheral per port is the
 initial logical model; compound devices require explicit profile support.
-No accessory bus or external memory-card socket is implicitly included.
+No accessory bus or external memory-card socket is implicitly included beyond
+the memory accessory the profile declares under `ICD-STO-001`; any other accessory
+needs explicit profile support.
 
 ## 6. ICD-STO-001 and ICD-DBG-001
 
@@ -230,6 +236,86 @@ Media selection must consider storage size, erase/program granularity, endurance
 write latency and power-loss recovery. A flash write can disrupt code execution
 or interrupts on some MCU arrangements; the implementation shall prove that the
 console driver remains safe or disallow that operation while connected.
+
+### Memory accessory storage (SRS-STO-005..006)
+
+Memory-card storage is in scope for accessories attached through the controller
+port (N64 Controller Pak, Dreamcast VMU) and is the adapter's responsibility: it holds the
+authoritative data and the console never waits on the network (`SAD-D-003`). The
+initial scope is one accessory per emulated port, two per adapter. Each profile
+determines the resources below before approval (`ICD-CON-001` "Persistent data"
+and "Resources" fields).
+
+Sizing baseline. Capacities and attachment are leads from general knowledge, not
+primary sources (`ICD-REF-001`: secondary, unverified); each profile replaces
+them with verified values.
+
+| Console | Accessory (lead) | Attached via | Capacity per accessory | Data for two ports |
+|---|---|---|---:|---:|
+| N64 | Controller Pak (battery-backed SRAM) | Controller data line, no extra pins | 32 KiB | 64 KiB |
+| Dreamcast | VMU (flash; also LCD, buzzer, clock outside this scope) | Controller, over the Maple bus | 128 KiB | 256 KiB |
+| PlayStation, PlayStation 2, GameCube | Memory cards | Out of scope (owner decision): dedicated card slot, no signals shared with the controller port | - | - |
+| Original Xbox | Memory Unit | Out of scope (owner decision: limited use) | - | - |
+| NES, SNES, Mega Drive, Saturn | None in the controller port (Saturn backup memory is a console or cartridge feature) | - | - | - |
+
+Storage device (`SRS-STO-008`, `SAD-P-012`). The accessory image is held in
+non-volatile storage external to the MCU; external SPI (or QSPI) **FRAM** is the
+proposed device. Compared with MCU-attached flash, FRAM needs no erase and no
+wear levelling, never blocks execute-in-place reads, and keeps the data across a
+power loss without a flush policy. Device facts below are from general knowledge
+and need datasheet confirmation (`ICD-PLAT-001`, `ICD-REF-001`).
+
+Resource rules for every profile with a memory accessory:
+
+- **Capacity.** The part holds two banks (layout confirmed by the owner) of the accessory image (active and
+  staging) plus a small bank-select record, so that a network replacement is
+  installed atomically (`SRS-STO-004`): a staged image is written and verified in
+  the idle bank, then one record write makes it active. Parts: 2 x 32 KiB for the
+  N64 Controller Pak needs a 512 kbit part; 2 x 128 KiB for the Dreamcast VMU
+  needs a 2 Mbit part (both are common SPI FRAM densities; verify). Accessory
+  identity and format flags live in the adapter configuration, not in the image.
+- **Devices and bus (owner decision: shared bus).** One FRAM per emulated port
+  (two per adapter) on a single shared SPI bus with its own chip select each:
+  5 GPIO in total (SCK, MOSI, MISO, two CS; `ICD-CAP-019`). One SPI controller
+  with DMA serves both devices and accesses are serialised, so a console access
+  can wait for one transfer of the other port. The access-time budget therefore
+  includes that wait: worst case twice the transfer, about 14 us for two 32-byte
+  blocks and about 206 us for two 512-byte blocks at 40 MHz. The arbiter runs from
+  interrupt or DMA context, never from the network task, and neither port's
+  accesses may be starved. Network export, import and verification run only in
+  maintenance, when the consoles are quiescent (`SRS-STO-003`), so they never
+  contend with console accesses.
+- **Access time.** Without contention, an SPI read or write of a 32-byte block (36 bytes with the
+  command and address) at 40 MHz takes about 7 us; a 512-byte block (516 bytes)
+  about 103 us. Whether this fits each console's response limit, including the
+  shared-bus wait above, is a measurement (`ICD-VER-021`); if a read is too slow, a small write-through RAM
+  cache or prefetch may be used as a latency device only, never as the
+  authoritative copy, or a QSPI part is chosen.
+- **Writes and power fail.** A console block write is acknowledged to the console
+  only after the FRAM write has completed (write-through; no dirty state, so
+  `dirty_resources` stays zero). A write interrupted by power loss can tear that
+  one block; the profile states how the console's own checksums and redundancy
+  absorb it, and a power-loss detector with a small hold-up lets an in-flight
+  block finish and blocks new writes.
+- **Endurance.** FRAM endurance is typically 10^12 cycles or more (verify). The
+  profile still states the figure against the worst-case write rate: one write
+  per millisecond to the same block for 10 years is about 3.2 x 10^11 cycles.
+- **Maintenance transfer time.** Export and import move the whole accessory in
+  183-byte chunks at about 1.60 ms per exchange (`PS-TIMING` at 2 Mbit/s), so the
+  bus is the lower bound: 32 KiB 0.3 s and 128 KiB 1.1 s per accessory, double for
+  two. Verifying a staged 128 KiB image over SPI at 40 MHz takes about 26 ms and
+  there is no programming time. Maintenance is never armed, so this does not
+  affect the 5 ms input cadence.
+- **Presence and identity.** The profile states what the console sees when the
+  accessory is absent, being maintained, or after a failed commit
+  (`PS-MAINTENANCE`), and the accessory identity (serial, format) it presents.
+- **Interface.** An in-scope accessory is reached through the controller
+  connector and adds no console channels (`ICD-CAP-018`); the storage device's
+  own GPIO are counted separately (section 8.3).
+- **Exception.** A profile for which external FRAM is not applicable may use
+  MCU-attached flash with a RAM-resident working set, copy-on-write commits,
+  spare area, a flush and rate-limit policy, hold-up for the dirty set, and the
+  execute-in-place safety plan below; it needs an owner-approved register entry.
 
 For RP2350 designs executing from external flash, flash programming/erasure
 requires an explicit multicore, interrupt and execute-in-place safety plan.
@@ -252,7 +338,7 @@ Recovery connector, boot entry procedure and production debug policy remain open
 | Console approval | Completed ICD-CON-001 supplement, two-port traces, safe idle/power transitions | SRS-SYS-005, SRS-PERF-003 |
 | Timing/resource approval | Console load plus full bus/USB/storage activity, watchdog and flash-stall injection; resource table within the 70 % margin | SRS-IN-009, SRS-HW-004 |
 | Platform register | `ICD-PLAT-001` completed from the current RP2350 datasheet and errata, with no console-facing signal relying on MCU 5 V tolerance or internal pulls | SRS-HW-005, SRS-HW-006 |
-| Capability verification | `ICD-VER-001..020` executed with pass criteria populated from the approved supplement | SRS-HW-002..006, SRS-OWN-013 |
+| Capability verification | `ICD-VER-001..021` executed with pass criteria populated from the approved supplement | SRS-HW-002..006, SRS-OWN-013 |
 | Hub baseline | `ICD-HUB-001` figures confirmed by the power budget and `ICD-VER-018..019` | SRS-HW-004, SRS-UI-001 |
 
 Actual cable length, connector, supply, isolation, transceiver, console pinouts,
@@ -291,7 +377,9 @@ takes precedence.
 | ICD-CAP-014 | P | Adapter system I/O (section 8.3) is counted with the console channels in every profile's GPIO budget on the chosen RP2350 variant. |
 | ICD-CAP-015 | P | Every profile gives the dynamics columns of section 8.4; no translator or protection part is approved without them. |
 | ICD-CAP-016 | P | Connector power characteristics (section 8.5) are treated as unverified leads until measured or taken from primary documentation. |
-| ICD-CAP-017 | D | Out of scope for the baseline: analog electrical interfaces, video synchronisation signals, light guns and specialist peripherals, accessory signals needing extra connector pins, physical motor drive circuitry, and general digital protocols beyond the electrical boundary. |
+| ICD-CAP-017 | D | Out of scope for the baseline: analog electrical interfaces, video synchronisation signals, light guns and specialist peripherals, accessory signals needing extra connector pins other than a declared memory accessory (`ICD-CAP-018`), physical motor drive circuitry, and general digital protocols beyond the electrical boundary. |
+| ICD-CAP-018 | D | A profile's memory accessory interface (`ICD-STO-001`, `SRS-STO-005`) is in scope only when the accessory is reached through the controller port, sharing its signals (N64 Controller Pak, Dreamcast VMU); it then adds no channels to the baseline. Memory cards in a dedicated card slot (GameCube, PlayStation, PlayStation 2) and the Original Xbox Memory Unit are out of scope, so no card-slot interface is provided. |
+| ICD-CAP-019 | P | Emulated memory accessory contents are held in an external non-volatile device, proposed FRAM (`SRS-STO-008`, `ICD-STO-001`). Its SPI/QSPI signals, 3.3 V supply and decoupling are part of the adapter and are counted in the GPIO budget (section 8.3). The device is never reachable from a console-facing signal. |
 
 ### 8.2 Console channel sizing baseline (two emulated ports)
 
@@ -333,6 +421,19 @@ Largest console channel count: 14 (Mega Drive and Saturn, two ports).
 | Dreamcast (with +2 presence, to be confirmed) | 6 | 9 | 15 | 50 % | Within |
 | PlayStation, PlayStation 2 | 10 | 9 | 19 | 63 % | Within |
 | Mega Drive, Saturn | 14 | 9 | 23 | 77 % | Exceeds: RP2350B (48 GPIO) or a split design |
+
+Memory accessory storage device (`ICD-CAP-019`, only for profiles with one),
+counted separately from the table above. The shared SPI bus (owner decision) adds
+5 GPIO:
+
+| Console | Table total | Storage device GPIO | Total | Share of RP2350A (30) | Margin rule (21) |
+|---|---:|---:|---:|---:|---|
+| Nintendo 64 | 11 | 5 | 16 | 53 % | Within |
+| Dreamcast | 15 | 5 | 20 | 67 % | Within (one GPIO spare) |
+
+Translator direction/enable lines are still not counted, so the Dreamcast margin
+is thin; a separate bus per port (8 GPIO, 23 in total for the Dreamcast) would
+exceed it and is not adopted.
 
 The 30 and 48 GPIO figures are for the RP2350A and RP2350B packages
 (`SAD-P-007`) and are to be re-verified in `ICD-PLAT-001`. The Original Xbox
@@ -409,6 +510,7 @@ one-to-one onto ICD-VER-nnn for 001..014 and are retired.
 | ICD-VER-018 | ICD-USB-001, SAD-P-009 | Hub two-device acceptance | Two HID devices, one low-speed and one full-speed, enumerate through the hub IC, report at their descriptor intervals for 10 minutes with no missed report (no sequence gap over twice the interval) and no enumeration loss on hot-plug |
 | ICD-VER-019 | ICD-HUB-001 | Hub VBUS limiting | Each downstream port limits and reports overcurrent at its configured limit and recovers without disturbing the other port |
 | ICD-VER-020 | ICD-NET-001, PS-TIMING | Isolated bus delays at 2 Mbit/s | Isolator propagation plus driver enable/disable delay fit the 20 us disable allowance and 50 us earliest-response gap with margin, and isolator pulse-width distortion leaves a positive sampling margin on a 500 ns bit |
+| ICD-VER-021 | ICD-CAP-018, ICD-CAP-019, ICD-STO-001 | Memory accessory per port | The console formats, saves, loads and copies an accessory of the declared capacity from both ports at the same time; an inactive console reads its own accessory; every read and write of the storage device meets the console's response limit at the worst-case access time including the shared-bus wait with both consoles active; power removed during a block write and during a maintenance commit leaves a valid old or new image (a torn block is absorbed as the profile states); the endurance figure and export/import time meet the resource table |
 
 ## 11. Registers
 

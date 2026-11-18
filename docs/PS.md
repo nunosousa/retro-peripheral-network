@@ -13,6 +13,8 @@
 | 0.1 | Initial bounded framing, commissioning, service schemas, two-player input and safe ownership transactions. |
 | 0.1 (2026-11-18) | REVIEW-001 correction cycle: per-opcode response timeouts and cycle budget, feedback cadence, commissioning retry and ID rules, persisted address, hardware UID/RNG provisioning, CAPS kind 4 (`neutralisation_bound_us`) and bounded CAPS indexes, STATUS lifecycle/counter corrections, idle-identity check, Update marked Future. |
 | 0.1 (2026-11-18, owner decision) | Line rate raised to 2 Mbit/s (trunk under 5 m): PS-TIMING bit time, timeout classes (short up to 140 wire bytes at 1.0 ms, long 1.5 ms), cycle budget and latency bounds recomputed; display service recorded as a proposed Future service (`PS-SVC-DISPLAY`) at lowest priority with adapter-declared chunk size. |
+| 0.1 (2026-11-18, owner decision) | Storage note updated for an external FRAM backend (bank flip commit; no wire change). |
+| 0.1 (2026-11-18, owner decision) | Memory-card accessories described as Storage resources with transfer times (PS-SVC-STORAGE); no wire change. |
 
 ## 1. PS-PROFILE: scope and conventions
 
@@ -703,6 +705,20 @@ replacement is durably installed and satisfies SRS-STO-004. A reset/power loss
 may leave old or new valid media, never an acknowledged partially replaced
 resource. If a backend cannot meet this contract, it shall not advertise
 writable Storage. Network export is never needed for local console I/O.
+
+Memory-card accessories (`SRS-STO-005`) are Storage resources: each accessory is
+one resource whose `size` is the console-visible capacity (128 KiB for the
+largest in-scope lead, well inside `u32`). The image is the adapter's authoritative copy,
+including console checksums and identity, which the network treats as opaque
+bytes. Full replacement matches an accessory image. Because only one token may
+be open, two accessories are transferred one after another. At 183-byte chunks and
+about 1.60 ms per exchange (`PS-TIMING`), one accessory takes about 0.3 s (32 KiB)
+or 1.1 s (128 KiB) on the bus. With an FRAM backend (`SAD-P-012`) WRITE chunks go
+straight to the idle bank, COMMIT verifies the staged image and flips the bank
+record (tens of milliseconds for 128 KiB), and there is no flash programming
+time; a backend that programs flash shall declare a maximum working time that
+covers it (`PS-TRANSACTION`). A resource is not bound to a port in 0.1
+(`SAD-O-011`).
 
 ### PS-SVC-CONFIG
 
