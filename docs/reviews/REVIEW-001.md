@@ -899,7 +899,46 @@ process, latest review record) to the README, kept separate from the specificati
 
 | ID | Owner decision (Accept / Modify / Reject / Defer) | Resolution reference | Status |
 |---|---|---|---|
-| RR-001-001 .. RR-001-040 | _pending_ | _pending_ | Open |
+| RR-001-001 | Accept | Apply suggested solution | Answered |
+| RR-001-002 | Accept | Apply suggested solution | Answered |
+| RR-001-003 | Accept | Don't rely on the chosen MCU 5V capabilities. Rely only on external translators when applicable. | Answered |
+| RR-001-004 | Accept | The RP2350 MCU family has only a single USB 1.1 interface. To satisfy SRS-SYS-002, the RPN hub can have a USB hub IC thus allowing for two player USB input controller devices. | Answered |
+| RR-001-005 | Accept | Apply suggested solution option A (recommended for scope): the Xbox adapter implements two USB device ports (matching the two-player limit); the other two console ports are left unconnected (the console sees no controller). | Answered |
+| RR-001-006 | Accept | Apply suggested solution | Answered |
+| RR-001-007 | Accept | Apply suggested solution | Answered |
+| RR-001-008 | Accept | The EIC was added adhock without any consideration for project standards. It shall be seen as engineering notes and deprecated as an individual document. Its contents when found usefull with the system intent shall be used. When in conflict, the existing documentation takes precedence. | Answered |
+| RR-001-009 | Accept | See RR-001-008 | Answered |
+| RR-001-010 | Accept | Apply suggested solution | Answered |
+| RR-001-011 | Accept | See RR-001-008 | Answered |
+| RR-001-012 | Accept | See RR-001-008 | Answered |
+| RR-001-013 | Accept | Apply suggested solution | Answered |
+| RR-001-014 | Accept | Apply suggested solution | Answered |
+| RR-001-015 | Accept | Apply suggested solution | Answered |
+| RR-001-016 | Accept | Apply suggested solution | Answered |
+| RR-001-017 | Accept | Apply suggested solution | Answered |
+| RR-001-018 | Accept | Apply suggested solution | Answered |
+| RR-001-019 | Accept | Apply suggested solution | Answered |
+| RR-001-020 | Accept | Apply suggested solution | Answered |
+| RR-001-021 | Accept | Apply suggested solution | Answered |
+| RR-001-022 | Accept | Apply suggested solution | Answered |
+| RR-001-023 | Accept | Apply suggested solution | Answered |
+| RR-001-024 | Accept | Apply suggested solution | Answered |
+| RR-001-025 | Accept | Apply suggested solution | Answered |
+| RR-001-026 | Accept | Apply suggested solution | Answered |
+| RR-001-027 | Accept | Apply suggested solution | Answered |
+| RR-001-028 | Accept | See RR-001-008. Apply suggested solution | Answered |
+| RR-001-029 | Accept | See RR-001-008. Apply suggested solution (b): correct the channel table (TL as output) and recompute sections 6.4 and 7. Add the Mega Drive idle-timeout and TH-edge timing to the profile's measurement list. The 3D pad is in scope. | Answered |
+| RR-001-030 | Accept | See RR-001-008. Apply suggested solution | Answered |
+| RR-001-031 | Accept | See RR-001-008. Apply suggested solution | Answered |
+| RR-001-032 | Accept | See RR-001-008. Apply suggested solution | Answered |
+| RR-001-033 | Accept | See RR-001-008. Apply suggested solution | Answered |
+| RR-001-034 | Accept | Apply suggested solution | Answered |
+| RR-001-035 | Accept | See RR-001-008 and RR-001-004. Apply suggested solution | Answered |
+| RR-001-036 | Accept | Apply suggested solution | Answered |
+| RR-001-037 | Accept | Apply suggested solution. Initial draft idea is to have a hub UI with a small display showing button mapping with target console button names, and in the case of the dreamcast show the VMU screen. | Answered |
+| RR-001-038 | Accept | Apply suggested solution. Sega saturn could be a good first option. | Answered |
+| RR-001-039 | Accept | Apply suggested solution | Answered |
+| RR-001-040 | Accept | Apply suggested solution | Answered |
 
 ## 6. Gates carried forward
 
