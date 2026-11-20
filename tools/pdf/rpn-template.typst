@@ -1,0 +1,9 @@
+// Pandoc template for the RPN PDFs; see rpn-style.typ for the layout.
+#import "/tools/pdf/rpn-style.typ": *
+
+#show: rpn-setup.with(
+  title: [$title$],
+  date: "$date$",
+)
+
+$body$
