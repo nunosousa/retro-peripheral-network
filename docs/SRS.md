@@ -5,7 +5,7 @@
 | Document ID | RPN-SRS |
 | Revision | 0.1 |
 | Status | Draft - architecture exploration; not a validated baseline |
-| Date | 2026-11-18 |
+| Date | 2026-11-24 |
 | Companion documents | [RPN-ICD](ICD.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
@@ -16,6 +16,7 @@
 | 0.1 (2026-11-18, owner decision) | Memory-card accessory storage brought into scope as an adapter responsibility with a per-profile memory-resource determination (SRS-STO-005..006, SRS-V-005). |
 | 0.1 (2026-11-18, owner decision) | Memory-card scope narrowed to controller-port accessories (N64 Controller Pak, Dreamcast VMU): GameCube, PlayStation and PlayStation 2 dedicated-slot cards and the Original Xbox Memory Unit out of scope; SRS-STO-007 retired. |
 | 0.1 (2026-11-18, owner decision) | Emulated memory-card contents held in storage external to the MCU, proposed FRAM (SRS-STO-008, SRS-V-005). |
+| 0.1 (2026-11-24, owner decision) | Player count raised from two to four: four player contexts and up to four routed ports per adapter (SRS-SYS-002, SYS-007, SYS-009), multitap emulation as a per-profile option (SRS-SYS-010), a removed device leaves a neutral record without inhibiting other routes (SRS-IN-010, IN-013), unrouted ports present an idle pad (SRS-IN-014); glossary and verification updated. Supersedes the two-port scope of REVIEW-001 RR-001-011 and option A of RR-001-005. |
 
 ## 1. Purpose and interpretation
 
@@ -55,10 +56,12 @@ to `EIC-VER-014` and the `RPN-EIC` document are not reused; see the
 | Adapter | One console interface device: the network node that represents one console instance (SRS-SYS-006) |
 | Node | Any addressed bus participant (adapters in profile 0.1; the hub is the master) |
 | Console port | A physical controller connector of the original console |
-| Port (protocol) | A PS `port` ID (0 or 1) naming one emulated console port of an adapter; the profile maps it to a physical connector |
-| Player | One of two independent player contexts in the hub (player 0, player 1) |
-| Route | One player-to-port assignment with a selected virtual peripheral and mapping (SRS-IN-005); at most two per owner |
-| Endpoint | A route as seen by the adapter: one active player/port record (so "two active endpoints" means two active routes) |
+| Port (protocol) | A PS `port` ID (0 to 3) naming one emulated console port of an adapter; the profile maps it to a physical connector or a multitap slot |
+| Player | One of four independent player contexts in the hub (players 0 to 3) |
+| Route | One player-to-port assignment with a selected virtual peripheral and mapping (SRS-IN-005); at most four per owner |
+| Endpoint | A route as seen by the adapter: one active player/port record (so "four active endpoints" means four active routes) |
+| Multitap | A console accessory that gives one controller port several controller slots; RPN emulates it inside the adapter and the hub sees each slot as a port (SRS-SYS-010) |
+| Neutral record | The INPUT record of a route whose physical device is absent: no valid controls and every value neutral (SRS-IN-013, `PS-DATA-INPUT`) |
 | Channel | One electrical signal path between the adapter logic and a console connector pin (ICD-CAP) |
 | Owner | The one adapter currently authorised to expose live input (ownership); "project owner" means the person approving scope and maturity |
 | Profile | A console-specific interface and behaviour definition (ICD-CON-001 supplement); also used for the provisional network profile |
@@ -73,19 +76,22 @@ British "-ise" forms.
 | ID | Class | Requirement |
 |---|---|---|
 | SRS-SYS-001 | C | RPN shall separate input acquisition and routing in the hub from console-specific protocol, peripheral and accessory emulation in adapters. |
-| SRS-SYS-002 | C | RPN shall support two simultaneous independent player contexts and explicit player-to-console-port routing. |
+| SRS-SYS-002 | C | RPN shall support four simultaneous independent player contexts and explicit player-to-console-port routing. The number of players that can play on one console is bounded by the ports its adapter emulates (SRS-SYS-009, SRS-SYS-010). |
 | SRS-SYS-003 | C | Connecting RPN shall require no permanent modification to a target console. |
 | SRS-SYS-004 | C | The target family roadmap shall include NES, SNES, N64, GameCube, Mega Drive, Saturn, Dreamcast, PlayStation, PlayStation 2 and Original Xbox. Inclusion in this roadmap shall not be represented as implemented or electrically validated support. |
 | SRS-SYS-005 | D | Each supported console profile shall specify electrical compatibility, supported peripheral modes, mapping limitations, accessory behaviour and validation evidence before use on original hardware. |
 | SRS-SYS-006 | D | An adapter shall represent one console instance and its supported controller ports. Multiple connectors or processors may be required inside that adapter. |
-| SRS-SYS-007 | P | The initial network profile shall support one hub and up to 31 addressed adapters, two routed player records on one owner and at most two active routes (endpoints). This is an address/resource bound, not a validated cable or node-loading claim. |
+| SRS-SYS-007 | P | The initial network profile shall support one hub and up to 31 addressed adapters, four routed player records on one owner and at most four active routes (endpoints). This is an address/resource bound, not a validated cable or node-loading claim. |
 | SRS-SYS-008 | P | The typical installation shall be up to 10 adapters on a trunk of less than 5 m; the first harness calculation (`ICD-NET-002`) shall use these figures. Larger installations up to the SRS-SYS-007 address bound require their own measured qualification. |
-| SRS-SYS-009 | D | An adapter shall emulate at most the two console ports that can be routed (SRS-SYS-002/007). Further physical ports of a console are left unpopulated or unconnected, so the console sees no controller there; four-port and multitap support is Future (`SAD-F-001`). |
+| SRS-SYS-009 | D | An adapter shall emulate every native controller port of its console, up to the four ports that can be routed (SRS-SYS-002/007). A profile may populate fewer only by a decision recorded in its supplement (`ICD-CON-001`); the console then sees no controller on an unpopulated connector. |
+| SRS-SYS-010 | D | For a console with fewer than four native controller ports, the profile shall either emulate a multitap that the console supports, so that the adapter presents up to four ports, or advertise only the native ports, in which case the players beyond them stay unrouted. The supplement declares which and, for a multitap, its model, protocol limits and slot-to-port mapping (`ICD-CON-001`). Multitap support is not required for the first increment (`SAD-P-013`). |
 
-Two simultaneous players is not a promise of multitap emulation, arbitrary
-four-player accessories, or two active consoles. Multiple consoles may remain
-powered while only one console owns player input. A supported console need not
-emulate every peripheral ever sold for it. Exact console variants and peripheral
+Four simultaneous players is not a promise that every console reaches four: a
+console with fewer native ports reaches four only through a multitap its profile
+emulates (SRS-SYS-010). Nor is it a promise of arbitrary multi-player
+accessories, or of two active consoles. Multiple consoles may remain powered
+while only one console owns player input. A supported console need not emulate
+every peripheral ever sold for it. Exact console variants and peripheral
 coverage remain O items in [SAD section 3](SAD.md#3-decision-register).
 
 ## 3. Input and peripheral requirements
@@ -99,11 +105,13 @@ coverage remain O items in [SAD section 3](SAD.md#3-decision-register).
 | SRS-IN-005 | D | Every active route shall identify a player, adapter, port, selected virtual peripheral and mapping configuration. Multiple active routes shall not target the same port or duplicate a player in the initial profile. |
 | SRS-IN-006 | D | The adapter shall apply a documented console-local mapping, including button layout, axis ranges, dead zones, inversion, analog-to-digital thresholds, hysteresis and unsupported-control behaviour. |
 | SRS-IN-007 | D | Missing or invalid controls shall resolve to the generic neutral state; disconnected devices shall not leave latched active controls. Mapping to a peripheral unable to represent required controls shall require an explicit user-visible compatibility decision. |
-| SRS-IN-008 | D | The adapter shall install both player records in a two-port update atomically and shall reject the whole update if any record is invalid. Each console transaction shall read a coherent local snapshot. |
+| SRS-IN-008 | D | The adapter shall install all player records of an update atomically and shall reject the whole update if any record is invalid. Each console transaction shall read a coherent local snapshot. |
 | SRS-IN-009 | D | Adapter console timing shall remain independent of network service latency, flash writes and hub scheduling. Unsupported simultaneous peripheral combinations shall be rejected before arming. |
-| SRS-IN-010 | D | Input-device replacement, mapping changes and peripheral changes shall inhibit the affected routes until validation and a fresh snapshot complete. |
+| SRS-IN-010 | D | Input-device replacement shall keep the affected player's record neutral until the new device is validated against its route and a fresh snapshot completes (SRS-IN-013); a replacement the route cannot accept keeps the record neutral until the routes are replaced. Mapping changes and peripheral changes shall inhibit the affected routes until validation and a fresh snapshot complete. |
 | SRS-IN-011 | D | Every console profile shall declare a default idle peripheral identity presented to its console while the adapter is inhibited or configured, and shall state whether a peripheral change is allowed while the console is running. A route selects mapping, not identity: unless the profile declares live identity change as measured and safe, arming shall not change the identity the console sees. |
 | SRS-IN-012 | P | In the first increment the hub shall accept USB HID gamepads and arcade fight sticks whose report descriptors it can parse. Devices needing console-specific protocols or authentication (for example Xbox 360/One, PlayStation 4/5 or Nintendo Switch controllers) are Future (`SAD-F-005`); the first two concrete devices are recorded under `SAD-O-010`. |
+| SRS-IN-013 | C | When the physical device of a routed player is removed, lost or replaced and not yet validated, that player's route shall carry a neutral record (the generic neutral state of SRS-IN-007) and shall not inhibit the other routes, end the ownership generation or interrupt lease renewal; the other players' controls are unaffected. The neutral record shall reach the adapter within the SRS-PERF-001 bound after the hub detects the loss; the detection time is measured and reported (SRS-V-002). A player without a route is covered by SRS-IN-014. |
+| SRS-IN-014 | C | While the adapter is armed, every emulated console port without a route shall present the profile's default idle peripheral identity with neutral controls (SRS-IN-011 already requires this while inhibited or configured) as an idle pad, never as an absent controller. A connector the profile leaves unpopulated (SRS-SYS-009) is not an emulated port. |
 
 Generic controls and neutral values are defined by `PS-DATA-INPUT`, not by
 Nintendo or Sony naming. Adapter mapping is console-specific; the hub can select
@@ -115,7 +123,7 @@ configuration tool outside the hub's acquisition/routing core.
 
 | ID | Class | Requirement |
 |---|---|---|
-| SRS-OWN-001 | C | The hub shall distinguish selection of one console owner from assignment of the two players to that console's ports. |
+| SRS-OWN-001 | C | The hub shall distinguish selection of one console owner from assignment of the players to that console's ports. |
 | SRS-OWN-002 | D | At most one adapter shall be authorised to expose live player input at a time. Non-owners may continue console protocol exchanges but shall expose neutral controls or a profile-defined disconnected state. |
 | SRS-OWN-003 | D | Boot, reset, expired ownership, input loss, invalid configuration and firmware maintenance shall leave live controls inhibited. |
 | SRS-OWN-004 | D | Ownership transfer shall neutralise the old owner before enabling a new owner, using acknowledgement or expiration of a bounded lease; lack of response shall never be treated as successful revocation. |
@@ -162,7 +170,7 @@ not unrestricted plug-and-play broadcast enumeration. See `PS-DISCOVERY`.
 | SRS-STO-003 | D | Network storage export shall provide an explicit consistency policy. Network writes shall require exclusive maintenance access, neutral controls and a disconnected or otherwise safely quiesced console storage interface. |
 | SRS-STO-004 | D | A successful persistent-write response shall mean durable completion according to a documented power-fail policy. A timeout shall be treated as indeterminate, not as proof that no write occurred. |
 | SRS-STO-005 | C | Memory-card accessory storage is in scope when the accessory attaches through the console's controller port, sharing the controller port signals (for example N64 Controller Pak and Dreamcast VMU). Emulating it is the responsibility of the adapter: the adapter shall hold the authoritative data locally and present the console-visible capacity, geometry and identity of the accessory. SRS-STO-001 still applies: a profile declares which accessory functions it implements. Memory cards in a dedicated card slot separate from the controller port (GameCube, PlayStation, PlayStation 2) and the Original Xbox Memory Unit are out of scope (owner decisions): they share no signals with the controller port or have limited use. |
-| SRS-STO-006 | D | The initial scope is one memory accessory per emulated console port (two per adapter). Every profile that includes one shall determine its memory resources before approval, recorded in the profile's resource table (`ICD-CON-001`, `ICD-STO-001`): data capacity per accessory, storage device and its capacity (two banks), console access time against the console's response limit, power-fail and torn-write behaviour, write endurance at the worst-case write rate, the GPIO the storage device adds, and the maintenance transfer time. These shall stay within the 70 % margin rule for the chosen RP2350 variant, or the profile shall change. |
+| SRS-STO-006 | D | The initial scope is one memory accessory per emulated console port (up to four per adapter). Every profile that includes one shall determine its memory resources before approval, recorded in the profile's resource table (`ICD-CON-001`, `ICD-STO-001`): data capacity per accessory, storage device and its capacity (two banks), console access time against the console's response limit, power-fail and torn-write behaviour, write endurance at the worst-case write rate, the GPIO the storage device adds, and the maintenance transfer time. These shall stay within the 70 % margin rule for the chosen RP2350 variant, or the profile shall change. |
 | SRS-STO-007 | Retired | **Retired 2026-11-18** (owner decision): it required a card-slot interface for dedicated-slot memory cards, which are out of scope (see SRS-STO-005). The identifier is not reused. |
 | SRS-STO-008 | C | Where applicable, the contents of an emulated memory accessory shall be held in non-volatile storage external to the MCU, not in MCU flash or RAM. External FRAM is the proposed device (`SAD-P-012`); MCU RAM may hold only a non-authoritative cache of it. The adapter's own firmware and configuration may stay in MCU flash. |
 | SRS-CFG-001 | D | Configuration changes shall be validated and applied as complete configurations. Failed writes or validation shall preserve the previous valid configuration and report failure. |
@@ -179,11 +187,11 @@ not unrestricted plug-and-play broadcast enumeration. See `PS-DISCOVERY`.
 | SRS-HW-001 | Retired | **Retired 2026-11-18** (REVIEW-001, RR-001-001); superseded by SRS-HW-005. The identifier is not reused. |
 | SRS-HW-002 | D | Console pins shall not be directly connected to incompatible MCU voltage domains. Every profile shall define power-off behaviour, level translation, drive mode and contention prevention. |
 | SRS-HW-003 | D | Console supplies shall not be tied together or back-powered through adapter or network connections. Grounding/isolation and fault protection shall be explicit before hardware connection. |
-| SRS-HW-004 | D | Two-player support shall be validated with both physical-device USB host load and both console-port timing engines active, including permitted accessory traffic. |
+| SRS-HW-004 | D | Multi-player support shall be validated with every connected physical device's USB host load and every emulated console-port timing engine active, at the largest route count the profile advertises (four for a four-port profile), including permitted accessory traffic. |
 | SRS-HW-005 | C | The hub and every adapter processor shall be members of the RP2350 family, unless a documented, owner-approved exception exists under `SAD-D-004`. |
 | SRS-HW-006 | D | No console-facing signal shall rely on MCU-side 5 V tolerance or on internal MCU pull-up/pull-down resistors. Voltage adaptation, pull-up ownership and protection shall be provided by external components (`ICD-CAP-003`). |
 | SRS-PERF-001 | P | Under the normal profile below, elapsed time from a complete normalised sample becoming available at the hub to atomic installation at the owner shall not exceed 10 ms. USB/Bluetooth acquisition and console polling are outside this interval and shall be measured separately. |
-| SRS-PERF-002 | P | The hub shall schedule a two-player input exchange every 5 ms while armed. Traffic admission shall reserve the worst-case exchange time, not just average bandwidth: a non-input exchange shall start only if its worst-case timeout path ends before the next input slot (`PS-TIMING`). |
+| SRS-PERF-002 | P | The hub shall schedule one input exchange carrying every configured player record (up to four) every 5 ms while armed. Traffic admission shall reserve the worst-case exchange time, not just average bandwidth: a non-input exchange shall start only if its worst-case timeout path ends before the next input slot (`PS-TIMING`). |
 | SRS-PERF-003 | D | Each console profile shall declare and meet its own measured response and jitter limits under maximum supported load. No universal console timing number is assumed. |
 | SRS-PERF-004 | P | End-to-end added latency, from the hub receiving a device report to the adapter having installed the corresponding snapshot, shall be at most 16.7 ms (one 60 Hz frame) at the 99.9th percentile, with the maximum reported separately. Budget components: hub processing at most 1 ms; hub sample availability to installation at most 10 ms (SRS-PERF-001). The device's own report interval and the console's polling phase are excluded from the budget but reported in the end-to-end measurement. A tighter target for fight sticks is open (`SAD-O-007`). |
 | SRS-PERF-005 | P | If exactly one INPUT exchange is lost, corrupted or times out, the next scheduled exchange shall carry the newest sample (an INPUT is never retried with a stale sample) and that sample shall be installed within 12 ms of becoming available. SRS-PERF-001 (10 ms) applies to the normal profile without link errors. |
@@ -194,7 +202,7 @@ not unrestricted plug-and-play broadcast enumeration. See `PS-DISCOVERY`.
 | SRS-MNT-003 | D | Protocol codecs, routing, lease handling and mapping shall be testable independently of physical hardware, supplemented by hardware-in-loop tests. |
 | SRS-EXT-001 | D | New console drivers shall not require changes to generic hub input acquisition or the base framing protocol. New service schemas shall be versioned and bounded. |
 
-The provisional normal profile is: one bus, one owner, two player records,
+The provisional normal profile is: one bus, one owner, up to four player records,
 31 or fewer commissioned adapters, no link errors, supported device/report rates,
 validated console-driver resource load and bulk traffic admitted by the scheduler.
 It does not assert fault-free timing during a bus outage. Faults are governed by
@@ -205,7 +213,7 @@ the lease limit. Normal operation and fault-containment limits must both be test
 | ID | Class | Requirement |
 |---|---|---|
 | SRS-UI-001 | P | The hub shall provide local physical means, with no external computer required, to select the console owner and to see the owner, armed/neutral state and any persistent fault. For the first prototype a physical selector and indicators are sufficient. |
-| SRS-UI-002 | P | The hub shall let the user assign the two players to the routed ports. The first prototype may use a fixed player 0 -> port 0, player 1 -> port 1 assignment. |
+| SRS-UI-002 | P | The hub shall let the user assign the players to the routed ports. The first prototype may use a fixed assignment of player n to port n. |
 | SRS-UI-003 | P | Initial draft intent: the hub should have a small display showing the active owner, routes and button mapping using the console's own button names. Those names are adapter-supplied metadata (SAD-MAP-001); the hub core keeps generic positions only (SRS-IN-001). |
 | SRS-UI-004 | F | Showing the Dreamcast VMU screen on the hub display. It needs a new, optional display service for adapter-captured display data, proposed in `PS-SVC-DISPLAY` and not part of PS 0.1 (`SAD-F-006`). It shall run at the lowest bus priority and shall not change INPUT timing, SRS-PERF-001/005 or the lease arithmetic; generic storage does not imply it (SRS-STO-001). |
 | SRS-SUP-001 | O | Field supportability beyond bounded counters (persistent logs, support export, diagnostics access) is not decided. |
@@ -222,13 +230,13 @@ as passing merely by publication of this draft.
 
 | Verification ID | Requirements | Method and acceptance evidence | Design references |
 |---|---|---|---|
-| SRS-V-001 | SYS-001..002, SYS-004..009, MNT-001..003, EXT-001 | I/T: dependency checks; add a mock adapter without changing hub core; inventory supported profiles versus roadmap; check that no adapter profile exposes more than two console ports | `SAD-COMP-*`, `ICD-CON-001` |
-| SRS-V-002 | IN-001..012, SYS-002 | T/H: two distinct devices, independent button/axis sweeps, unsupported mapping rejection, disconnects and simultaneous port reads; no cross-player leakage or torn snapshots; two named HID devices enumerate and parse; no identity change visible at the console when arming | `PS-DATA-INPUT`, `SAD-MAP-001`, `SAD-MAP-002` |
+| SRS-V-001 | SYS-001..002, SYS-004..010, MNT-001..003, EXT-001 | I/T: dependency checks; add a mock adapter without changing hub core; inventory supported profiles versus roadmap; check that no adapter profile exposes more than four console ports, that each profile states its populated ports and, for a console with fewer than four native ports, its multitap decision, and that an adapter advertises only the ports it emulates | `SAD-COMP-*`, `ICD-CON-001` |
+| SRS-V-002 | IN-001..014, SYS-002 | T/H: up to four distinct devices (two in the first prototype), independent button/axis sweeps, unsupported mapping rejection, disconnects and simultaneous port reads; no cross-player leakage or torn snapshots; the named HID devices enumerate and parse; no identity change visible at the console when arming; removing and reconnecting one device leaves every other player's controls unchanged, shows neutral controls for the removed player and reports the time from physical removal to the neutral record installed at the adapter; every unrouted port shows the default idle identity while armed | `PS-DATA-INPUT`, `SAD-MAP-001`, `SAD-MAP-002`, `SAD-D-010`, `SAD-D-011` |
 | SRS-V-003 | OWN-001..013 | T/F/H: simultaneous console activity, manual switches (switch time within 500 ms nominal), lost revoke reply, delayed frames, counter exhaustion and rollover to a new session, node/hub reset; no overlap of authorised live input; neutral within 103 ms real time of last renewal; per-profile neutralisation bound measured at the console connector | `SAD-OWN-001`, `PS-OWNERSHIP`, `ICD-VER-016` |
 | SRS-V-004 | NET-001..010, REL-001 | T/F: golden codecs, corrupt/truncated/oversize frames, duplicates, address conflicts, incompatible versions, queue saturation and retry exhaustion; commissioning retry after lost ASSIGN reply; persisted-address boot; bounded recovery and explicit diagnostics; baud-error margin measured | `PS-FRAME`, `PS-TRANSACTION`, `PS-DISCOVERY`, `ICD-VER-017` |
 | SRS-V-005 | STO-001..006, STO-008, CFG-001..002, UPD-001..003, REL-002 | T/F/H: remove power at each persistence/update stage; verify old/new valid state or documented recovery mode, no acknowledged data loss, no live input during maintenance; for each memory accessory in the profile, console-side format and capacity checks, the console's own save/load/format/copy operations, accesses from an inactive console, a read and a write of the external storage device within the console's response limit, power removed during a block write and during a maintenance commit, the device's endurance figure against the worst-case write rate, and the maintenance transfer time against the figure in the resource table; configuration commit with power loss and with a lost COMMIT acknowledgement (`PS-SVC-CONFIG`); hub roster/assignment persistence without restoring live controls | `PS-SVC-STORAGE`, `PS-SVC-CONFIG`, `PS-SVC-UPDATE`, `SAD-PERSIST-001` |
-| SRS-V-006 | HW-002..006, PERF-003 | I/H: signed-off per-console pin/timing profiles, powered/unpowered fault cases, oscilloscope and logic-analyser captures under two-port/accessory load; the ICD verification entries `ICD-VER-001..021` with their pass criteria; RP2350 datasheet/errata register completed | `ICD-CON-001`, `ICD-CAP-*`, `ICD-VER-*`, `ICD-QUAL-001` |
-| SRS-V-007 | PERF-001..002, PERF-004..005, NET-006 | T/H: timestamp sample availability and snapshot installation for at least 10 minutes of full two-player traffic plus admitted management load; every sample selected for transmission installed within 10 ms in the normal profile; end-to-end added latency at the 99.9th percentile and maximum; a single injected lost INPUT installed within 12 ms with no stale retry; report overwritten sample count separately | `PS-TIMING`, `SAD-SCHED-001` |
+| SRS-V-006 | HW-002..006, PERF-003 | I/H: signed-off per-console pin/timing profiles, powered/unpowered fault cases, oscilloscope and logic-analyser captures under all-port/accessory load; the ICD verification entries `ICD-VER-001..022` with their pass criteria; RP2350 datasheet/errata register completed | `ICD-CON-001`, `ICD-CAP-*`, `ICD-VER-*`, `ICD-QUAL-001` |
+| SRS-V-007 | PERF-001..002, PERF-004..005, NET-006 | T/H: timestamp sample availability and snapshot installation for at least 10 minutes of full traffic with the largest record count (four players) plus admitted management load; every sample selected for transmission installed within 10 ms in the normal profile; end-to-end added latency at the 99.9th percentile and maximum; a single injected lost INPUT installed within 12 ms with no stale retry; report overwritten sample count separately | `PS-TIMING`, `SAD-SCHED-001` |
 | SRS-V-008 | OWN-011, NET-007..008 | T/F: feedback replay, queue overflow, device swap, expiry and link loss; no misrouted/latched effects and visible error counters; feedback polled at its specified cadence | `PS-SVC-FEEDBACK`, `SAD-FB-001` |
 | SRS-V-009 | SYS-003 | I/H: connector-only attachment with no soldering, cutting or permanent change to the console; a reversible fixture; the console and its original controller restored to original function after removal | `ICD-CON-001`, `ICD-PWR-002` |
 | SRS-V-010 | UI-001..003, CFG-002 | I/T/demo: local owner selection, player assignment and fault indication without an external computer; display content comes from adapter metadata; power-cycle restores roster but not live controls | `SAD-COMP-HUB` |
@@ -246,9 +254,9 @@ SRS-UPD-004) have no verification entry until they are decided or scheduled.
 ## 10. Open scope and maturity gates
 
 See the authoritative [SAD decision register](SAD.md#3-decision-register).
-Bluetooth, actual wheel drivers, multitaps and four-port consoles, secure remote
-administration, network firmware update and additional simultaneous players are
-future possibilities (pointing, keyboard, motion, audio and rich-haptics
+Bluetooth, actual wheel drivers, secure remote administration, network firmware
+update and more than four simultaneous players are future possibilities
+(pointing, keyboard, motion, audio and rich-haptics
 peripherals, compound accessories and oversized controllers are catalogued in
 `SAD-MAP-003`). Console accessory
 coverage is selected per profile; VMU display/audio/clock and Xbox authentication
@@ -256,7 +264,8 @@ or other compatibility constraints must not be assumed solved by generic storage
 
 A first hardware prototype requires an approved electrical profile and a bus
 connector/power decision. A first functional demonstration requires one proven
-console driver, safe ownership and two-player timing evidence. A stable protocol
+console driver, safe ownership and two-player timing evidence; claiming four-player
+support additionally needs the four-record evidence of `SRS-V-007`. A stable protocol
 baseline additionally requires codec vectors and interoperability testing.
 All four documents remain Revision 0.1 until the owner explicitly approves a
 maturity change.

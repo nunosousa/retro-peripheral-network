@@ -5,7 +5,7 @@
 | Document ID | RPN-ICD |
 | Revision | 0.1 |
 | Status | Draft - electrical implementation not approved |
-| Date | 2026-11-18 |
+| Date | 2026-11-24 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
@@ -17,6 +17,7 @@
 | 0.1 (2026-11-18, owner decision) | Two-bank FRAM layout and a shared SPI bus confirmed: ICD-STO-001 devices-and-bus rule with the contention budget, section 8.3 GPIO table (N64 16, Dreamcast 20), ICD-VER-021. |
 | 0.1 (2026-11-18, owner decision) | Emulated memory-card contents in external FRAM: ICD-STO-001 rules rewritten (flash kept as an exception), ICD-CAP-019, storage-device GPIO in section 8.3, ICD-VER-021. |
 | 0.1 (2026-11-18, owner decision) | Memory-card scope narrowed to controller-port accessories (N64 Controller Pak, Dreamcast VMU); dedicated-slot cards and the Xbox Memory Unit out of scope; ICD-CAP-018 and the ICD-STO-001 table revised; the card-slot GPIO estimate withdrawn. |
+| 0.1 (2026-11-24, owner decision) | Player count raised from two to four: adapters emulate up to four ports (logical-unit text, ICD-CON-001 port mapping, resources and idle-identity fields, multitap notes); memory-accessory storage, GPIO tables (section 8.3) and the shared-SPI wait recomputed for four ports; Original Xbox ICD-CAP-011 now one USB device interface per emulated port; hub USB hub IC with four downstream ports and about 3 A; ICD-CAP-020 and ICD-VER-022 (multitap) added; ICD-VER-010, 014, 018, 019 and 021 extended to all ports. Supersedes option A of REVIEW-001 RR-001-005. |
 
 Classification and normative language follow [RPN-SRS section 1](SRS.md#1-purpose-and-interpretation).
 No connector pinout or console voltage table in this draft is approved for wiring.
@@ -47,18 +48,20 @@ Adapter local persistent media -------ICD-STO-001
 | ICD-PWR-001 | RPN operating power | Power distribution, budgeting and protection; hub and adapter power |
 | ICD-PWR-002 | Console power and sensing | Never parallel console supplies; sense-only default; per-console qualification required |
 | ICD-CON-001 | Adapter to console ports | Profile-specific electrical and timing boundary |
-| ICD-CAP-001..019 | Console electrical capability baseline | Sizing baseline and common capabilities (section 8); not an approval to wire |
+| ICD-CAP-001..020 | Console electrical capability baseline | Sizing baseline and common capabilities (section 8); not an approval to wire |
 | ICD-HUB-001 | Hub electrical baseline | Hub USB, power, bus and local I/O (section 9) |
-| ICD-VER-001..021 | Verification entries | Pass criteria for the capabilities and interfaces above (section 10) |
+| ICD-VER-001..022 | Verification entries | Pass criteria for the capabilities and interfaces above (section 10) |
 | ICD-PLAT-001, ICD-REF-001 | Platform and source registers | RP2350 datasheet/errata register and source provenance (section 11) |
 | ICD-STO-001 | Adapter persistent storage | Local accessory/configuration/update storage; technology profile-specific |
 | ICD-DBG-001 | Local recovery/debug | Required recoverability, connector/access control open |
 
-The proposed logical unit is one adapter per console, supporting up to two
-simultaneously routed ports (`SRS-SYS-009`): the other physical ports of a
-four-port console are not populated or are left unconnected, so the console sees
-no controller there. This is not a claim that one MCU can service every
-two-port combination. Adapter internals may contain multiple MCUs, translators,
+The proposed logical unit is one adapter per console, supporting up to four
+simultaneously routed ports (`SRS-SYS-009`): every native controller port of the
+console, or the slots of a multitap that the profile emulates (`SRS-SYS-010`).
+A connector the profile does not populate is left unconnected, so the console
+sees no controller there. This is not a claim that one MCU can service every
+four-port combination; the resource tables decide, and some profiles need the
+RP2350B (`SAD-P-007`). Adapter internals may contain multiple MCUs, translators,
 connectors and isolated domains under one network endpoint (`SAD-ADAPT-001`).
 Console and hub processors are RP2350 family parts (`SRS-HW-005`).
 
@@ -141,7 +144,7 @@ device speeds, report rates and host-stack support require qualification.
 The RP2350 has one native full-speed (USB 1.1) controller, not independent
 simultaneous native host and device controllers (to be re-verified against the
 datasheet recorded in `ICD-PLAT-001`). The hub therefore uses that controller as
-the USB host behind a **USB hub IC** with enough downstream ports to attach two
+the USB host behind a **USB hub IC** with enough downstream ports to attach four
 player input devices (`SAD-P-009`); a software (PIO) USB host is not counted on
 and no PIO state machine is budgeted for it. The single controller cannot also
 act as a USB device, so hub diagnostics use the UART/debug interface
@@ -149,7 +152,7 @@ act as a USB device, so hub diagnostics use the UART/debug interface
 interrupts, RAM and GPIO for the USB host stack, the RS-485 UART and its
 direction control, the local display and buttons) shall be recorded in
 `ICD-HUB-001` and keep the 70 % margin rule of `ICD-CON-001`. Bluetooth transport
-remains Future (`SAD-F-001`). "Two devices" passes only by `ICD-VER-018`.
+remains Future (`SAD-F-001`). "Four devices" passes only by `ICD-VER-018`.
 
 Adapter local power shall cover worst-case MCU, transceiver, isolator, translation,
 storage and any console-interface load. Rumble or accessory emulation shall not
@@ -196,16 +199,16 @@ It shall include the following before electrical implementation is approved:
 | Required profile field | Acceptance content |
 |---|---|
 | Identity | Console family, hardware/region variants tested, profile and peripheral IDs |
-| Connectors | Actual mating connector, orientation, pin numbering, both player-port wiring and shields |
-| Port mapping | Mapping from PS `port` IDs 0 and 1 to physical connectors; which connectors are populated or unconnected and what the console sees on an unused connector (`SRS-SYS-009`) |
+| Connectors | Actual mating connector, orientation, pin numbering, wiring of every emulated port and shields |
+| Port mapping | Mapping from PS `port` IDs 0 to 3 to physical connectors or multitap slots; which connectors are populated or unconnected and what the console sees on an unused connector (`SRS-SYS-009`); the multitap decision (`SRS-SYS-010`): none, or the model, its protocol limits, the populated slots and the slot-to-port mapping |
 | Electrical | Per console and signal: voltage range (min/typ/max), absolute maximums, thresholds, open-drain/push-pull direction, drive strength, protection, who supplies each pull-up (location and value) and the translator or clamp approach; the adapter adds no pull-up on a line the console already pulls up (`ICD-CAP-010`) |
 | Connector module | Hardware module ID or strap, voltage domain and drive type of the module (`ICD-CAP-004`) |
 | Power | Source, available current, isolation, no-backfeed analysis and all partial-power cases |
 | Timing | Measured request/response limits, jitter budget, pulse/clock tolerances, reset/detection and idle behaviour |
 | Dynamics | Nominal signalling rate and tolerance, required VIH/VIL and VOH/VOL at the console, maximum rise/fall time, maximum added propagation delay, skew between related lines, input and protection capacitance budget (`ICD-CAP-015`) |
-| Idle identity | Default peripheral identity presented while inhibited or configured, and whether a live peripheral change is allowed (`SRS-IN-011`) |
-| Neutralisation | `neutralisation_bound_us` and the measurement points at which neutral state becomes visible to the console after REVOKE, including any in-flight console transaction (`SRS-OWN-013`, `ICD-VER-016`) |
-| Resources | Resource table on the chosen RP2350 variant: GPIO (console channels plus system I/O of `ICD-CAP-014`), PIO state machines, DMA channels, interrupts, RAM, USB controllers and storage for every allowed two-port combination. Margin rule: no more than 70 % of any resource in the worst two-port combination |
+| Idle identity | Default peripheral identity presented while inhibited or configured and on every unrouted port while armed (`SRS-IN-014`), what a multitap presents for an unrouted slot, and whether a live peripheral change is allowed (`SRS-IN-011`) |
+| Neutralisation | `neutralisation_bound_us` and the measurement points at which neutral state becomes visible to the console after REVOKE, including any in-flight console transaction, which for a multitap spans all its slots (`SRS-OWN-013`, `ICD-VER-016`) |
+| Resources | Resource table on the chosen RP2350 variant: GPIO (console channels plus system I/O of `ICD-CAP-014`), PIO state machines, DMA channels, interrupts, RAM, USB controllers and storage for every allowed port combination. Margin rule: no more than 70 % of any resource in the worst all-port combination |
 | Peripheral behaviour | Identification, modes, mapping, neutral/disconnected state, feedback and accessories |
 | Persistent data | Memory accessory (if any): type, console-visible capacity, geometry and identity; external storage device (part, capacity, interface; one per port on a shared bus), bank layout, shared-bus access time under contention, torn-write and power-fail behaviour, endurance figure against the worst-case write rate, console access time against the console's response limit, any RAM cache, maintenance transfer time; behaviour when absent or being maintained (`ICD-STO-001`, `SRS-STO-005..008`) |
 | Evidence | Trace captures, test setup, equipment, firmware version and unsupported cases; measurements on at least one console of each family before approval; source register entries with revision and retrieval date |
@@ -214,13 +217,13 @@ The following is a risk inventory, **not** a pinout or validated protocol table:
 
 | Family | Console-local engineering questions |
 |---|---|
-| NES / SNES | Shift-register/latch/clock behaviour, voltage translation, two-port sampling and any nonstandard controllers; a latched shift register delivers its 16 bits over roughly 200 us, so the neutralisation measurement spans a full read |
-| N64 / GameCube | Bidirectional timing, turnaround and line drive; N64 Controller Pak read/write timing and its 32 KiB image; rumble behaviour; GameCube analog controls; neutral visibility after a transaction already started |
-| Mega Drive | Multiplexed controller selection, three/six-button modes and mode timing. Measurement list: TH-edge timing and the six-button pad idle timeout after which the TH count resets |
-| Saturn | Peripheral identification, digital/analog modes and multi-line timing; the 3D Control Pad is in scope, so the TL handshake output and TH/TR request timing are measured. Measurement list: TH/TR handshake edges and response timing, and mode behaviour |
-| Dreamcast | Maple implementation resources and two-player/peripheral topology; drive type, levels, pull-up arrangement and any presence/sense pin to be taken from primary Maple documentation; VMU memory emulation (128 KiB flash, block geometry and format) is in scope per port; VMU display/audio/clock completeness is not (`SRS-UI-004`) |
-| PlayStation / PlayStation 2 | Serial handshake and response timing, digital/analog/pressure-capable modes, motor requests and accessory scope (memory cards are out of scope: dedicated slot, no shared signals) |
-| Original Xbox | USB-device-side implementation, controller descriptors and compatibility/authentication behaviour to investigate; separate from the hub's USB-host role. Two emulated USB device ports, each on its own processor behind one gateway (`SAD-P-008`, `SAD-ADAPT-001`); the report already queued in a controller endpoint must be covered by the neutralisation measurement |
+| NES / SNES | Shift-register/latch/clock behaviour, voltage translation, two-port sampling and any nonstandard controllers; a latched shift register delivers its 16 bits over roughly 200 us, so the neutralisation measurement spans a full read. Multitaps (`SAD-P-013`): the NES Four Score uses both ports with no further signals (a 24-bit read with signature bits); the SNES multitap needs the Data2 and IOBit signals that the baseline excludes, two more channels per tapped port |
+| N64 / GameCube | Bidirectional timing, turnaround and line drive; N64 Controller Pak read/write timing and its 32 KiB image; rumble behaviour; GameCube analog controls; neutral visibility after a transaction already started. All four ports are emulated, so the resource table covers every port and, for the N64, four Controller Pak images |
+| Mega Drive | Multiplexed controller selection, three/six-button modes and mode timing. Measurement list: TH-edge timing and the six-button pad idle timeout after which the TH count resets. Multitaps: Sega Team Player and EA 4 Way Play are mutually incompatible, and in the Team Player protocol the console drives TH and TR while the tap answers on TL, so TR changes direction from the baseline's pad-driven output (`ICD-CAP-005`, `ICD-CAP-020`) |
+| Saturn | Peripheral identification, digital/analog modes and multi-line timing; the 3D Control Pad is in scope, so the TL handshake output and TH/TR request timing are measured. Measurement list: TH/TR handshake edges and response timing, and mode behaviour. The multitap has six slots, four of which are used (`SAD-O-015`) |
+| Dreamcast | Maple implementation resources and the four-port/peripheral topology; drive type, levels, pull-up arrangement and any presence/sense pin to be taken from primary Maple documentation; VMU memory emulation (128 KiB flash, block geometry and format) is in scope per port; VMU display/audio/clock completeness is not (`SRS-UI-004`) |
+| PlayStation / PlayStation 2 | Serial handshake and response timing, digital/analog/pressure-capable modes, motor requests and accessory scope (memory cards are out of scope: dedicated slot, no shared signals). Multitaps (four controllers per port) answer with longer packets, so the neutralisation measurement spans a full tap read; the PlayStation tap reuses the controller-port signals, PlayStation and PlayStation 2 software need different taps, and whether the PlayStation 2 tap also uses the memory-card slot (out of scope, `ICD-CAP-018`) is to be verified |
+| Original Xbox | USB-device-side implementation, controller descriptors and compatibility/authentication behaviour to investigate; separate from the hub's USB-host role. Up to four emulated USB device ports, each on its own processor behind one gateway (`SAD-P-008`, `SAD-ADAPT-001`); the report already queued in a controller endpoint must be covered by the neutralisation measurement |
 
 Adapters shall emulate the console interface, not attempt to electrically
 forward a modern controller's wires. One virtual peripheral per port is the
@@ -242,7 +245,7 @@ console driver remains safe or disallow that operation while connected.
 Memory-card storage is in scope for accessories attached through the controller
 port (N64 Controller Pak, Dreamcast VMU) and is the adapter's responsibility: it holds the
 authoritative data and the console never waits on the network (`SAD-D-003`). The
-initial scope is one accessory per emulated port, two per adapter. Each profile
+initial scope is one accessory per emulated port, up to four per adapter. Each profile
 determines the resources below before approval (`ICD-CON-001` "Persistent data"
 and "Resources" fields).
 
@@ -250,10 +253,10 @@ Sizing baseline. Capacities and attachment are leads from general knowledge, not
 primary sources (`ICD-REF-001`: secondary, unverified); each profile replaces
 them with verified values.
 
-| Console | Accessory (lead) | Attached via | Capacity per accessory | Data for two ports |
+| Console | Accessory (lead) | Attached via | Capacity per accessory | Data for four ports |
 |---|---|---|---:|---:|
-| N64 | Controller Pak (battery-backed SRAM) | Controller data line, no extra pins | 32 KiB | 64 KiB |
-| Dreamcast | VMU (flash; also LCD, buzzer, clock outside this scope) | Controller, over the Maple bus | 128 KiB | 256 KiB |
+| N64 | Controller Pak (battery-backed SRAM) | Controller data line, no extra pins | 32 KiB | 128 KiB |
+| Dreamcast | VMU (flash; also LCD, buzzer, clock outside this scope) | Controller, over the Maple bus | 128 KiB | 512 KiB |
 | PlayStation, PlayStation 2, GameCube | Memory cards | Out of scope (owner decision): dedicated card slot, no signals shared with the controller port | - | - |
 | Original Xbox | Memory Unit | Out of scope (owner decision: limited use) | - | - |
 | NES, SNES, Mega Drive, Saturn | None in the controller port (Saturn backup memory is a console or cartridge feature) | - | - | - |
@@ -275,22 +278,25 @@ Resource rules for every profile with a memory accessory:
   needs a 2 Mbit part (both are common SPI FRAM densities; verify). Accessory
   identity and format flags live in the adapter configuration, not in the image.
 - **Devices and bus (owner decision: shared bus).** One FRAM per emulated port
-  (two per adapter) on a single shared SPI bus with its own chip select each:
-  5 GPIO in total (SCK, MOSI, MISO, two CS; `ICD-CAP-019`). One SPI controller
-  with DMA serves both devices and accesses are serialised, so a console access
-  can wait for one transfer of the other port. The access-time budget therefore
-  includes that wait: worst case twice the transfer, about 14 us for two 32-byte
-  blocks and about 206 us for two 512-byte blocks at 40 MHz. The arbiter runs from
-  interrupt or DMA context, never from the network task, and neither port's
-  accesses may be starved. Network export, import and verification run only in
-  maintenance, when the consoles are quiescent (`SRS-STO-003`), so they never
+  (up to four per adapter) on a single shared SPI bus with its own chip select
+  each: 7 GPIO in total (SCK, MOSI, MISO, four CS; `ICD-CAP-019`). One SPI
+  controller with DMA serves all devices and accesses are serialised, so a console
+  access can wait for one transfer of each other port. The access-time budget
+  therefore includes that wait: worst case four times the transfer, about 29 us for
+  four 32-byte blocks and about 413 us for four 512-byte blocks at 40 MHz (the
+  owner's decision was taken for two ports, where the wait was half of this). The
+  arbiter runs from interrupt or DMA context, never from the network task, and no
+  port's accesses may be starved. Network export, import and verification run only
+  in maintenance, when the consoles are quiescent (`SRS-STO-003`), so they never
   contend with console accesses.
 - **Access time.** Without contention, an SPI read or write of a 32-byte block (36 bytes with the
   command and address) at 40 MHz takes about 7 us; a 512-byte block (516 bytes)
   about 103 us. Whether this fits each console's response limit, including the
   shared-bus wait above, is a measurement (`ICD-VER-021`); if a read is too slow, a small write-through RAM
   cache or prefetch may be used as a latency device only, never as the
-  authoritative copy, or a QSPI part is chosen.
+  authoritative copy, a QSPI part is chosen, or the devices are split over the
+  two SPI controllers (two per bus: the two-port wait of 206 us for three more
+  GPIO).
 - **Writes and power fail.** A console block write is acknowledged to the console
   only after the FRAM write has completed (write-through; no dirty state, so
   `dirty_resources` stays zero). A write interrupted by power loss can tear that
@@ -302,8 +308,8 @@ Resource rules for every profile with a memory accessory:
   per millisecond to the same block for 10 years is about 3.2 x 10^11 cycles.
 - **Maintenance transfer time.** Export and import move the whole accessory in
   183-byte chunks at about 1.60 ms per exchange (`PS-TIMING` at 2 Mbit/s), so the
-  bus is the lower bound: 32 KiB 0.3 s and 128 KiB 1.1 s per accessory, double for
-  two. Verifying a staged 128 KiB image over SPI at 40 MHz takes about 26 ms and
+  bus is the lower bound: 32 KiB 0.3 s and 128 KiB 1.1 s per accessory, times the
+  number of accessories (four: about 1.2 s and 4.6 s). Verifying a staged 128 KiB image over SPI at 40 MHz takes about 26 ms and
   there is no programming time. Maintenance is never armed, so this does not
   affect the 5 ms input cadence.
 - **Presence and identity.** The profile states what the console sees when the
@@ -335,10 +341,10 @@ Recovery connector, boot entry procedure and production debug policy remain open
 | Bus component choice | Datasheets, loading/bias calculations, oscilloscope eye/edge and mark/space polarity verification | SRS-NET-003, SRS-HW-003 |
 | Harness approval | Connector drawing, pinout, cable/stub limits, terminator placement and fault tests | SRS-HW-002..003 |
 | Power architecture | Load/drop analysis, isolation decision, ground-current and power-off/backfeed tests | SRS-HW-002..004 |
-| Console approval | Completed ICD-CON-001 supplement, two-port traces, safe idle/power transitions | SRS-SYS-005, SRS-PERF-003 |
+| Console approval | Completed ICD-CON-001 supplement, all-port traces, safe idle/power transitions | SRS-SYS-005, SRS-PERF-003 |
 | Timing/resource approval | Console load plus full bus/USB/storage activity, watchdog and flash-stall injection; resource table within the 70 % margin | SRS-IN-009, SRS-HW-004 |
 | Platform register | `ICD-PLAT-001` completed from the current RP2350 datasheet and errata, with no console-facing signal relying on MCU 5 V tolerance or internal pulls | SRS-HW-005, SRS-HW-006 |
-| Capability verification | `ICD-VER-001..021` executed with pass criteria populated from the approved supplement | SRS-HW-002..006, SRS-OWN-013 |
+| Capability verification | `ICD-VER-001..022` executed with pass criteria populated from the approved supplement | SRS-HW-002..006, SRS-OWN-013 |
 | Hub baseline | `ICD-HUB-001` figures confirmed by the power budget and `ICD-VER-018..019` | SRS-HW-004, SRS-UI-001 |
 
 Actual cable length, connector, supply, isolation, transceiver, console pinouts,
@@ -371,69 +377,81 @@ takes precedence.
 | ICD-CAP-008 | D | Every externally accessible console-facing signal has ESD, short-circuit, overvoltage and current-injection protection that does not compromise the console's timing or levels (`ICD-VER-012`). |
 | ICD-CAP-009 | P | Auto-direction level translators are not used on open-drain bidirectional lines unless measurement shows they meet the profile's dynamics; direction-controlled or discrete open-drain structures are the default. |
 | ICD-CAP-010 | D | Each profile names who supplies every pull-up (console or controller side) and its value; the adapter adds no pull-up on a line that the console already pulls up. |
-| ICD-CAP-011 | P | The Original Xbox adapter provides two USB 1.1 full-speed device interfaces, one per emulated port, each on its own processor, with USB signal protection (`SAD-P-008`). A transceiver shared between physical ports is not sufficient. |
+| ICD-CAP-011 | P | The Original Xbox adapter provides one USB 1.1 full-speed device interface per emulated port (four for a four-port profile), each on its own processor, with USB signal protection (`SAD-P-008`). A transceiver shared between physical ports is not sufficient. |
 | ICD-CAP-012 | D | Console power rails are never connected to the internal 3.3 V logic supply or to each other; the power architecture separates console power, internal logic, pull-up supplies and peripheral/motor power. Motor supply is outside the initial scope. |
-| ICD-CAP-013 | P | Console channel quantities in section 8.2 are the minimum for standard controller operation of the two emulated ports. |
+| ICD-CAP-013 | P | Console channel quantities in section 8.2 are the minimum for standard controller operation of the emulated ports (two or four, as section 8.2 states per console). |
 | ICD-CAP-014 | P | Adapter system I/O (section 8.3) is counted with the console channels in every profile's GPIO budget on the chosen RP2350 variant. |
 | ICD-CAP-015 | P | Every profile gives the dynamics columns of section 8.4; no translator or protection part is approved without them. |
 | ICD-CAP-016 | P | Connector power characteristics (section 8.5) are treated as unverified leads until measured or taken from primary documentation. |
 | ICD-CAP-017 | D | Out of scope for the baseline: analog electrical interfaces, video synchronisation signals, light guns and specialist peripherals, accessory signals needing extra connector pins other than a declared memory accessory (`ICD-CAP-018`), physical motor drive circuitry, and general digital protocols beyond the electrical boundary. |
 | ICD-CAP-018 | D | A profile's memory accessory interface (`ICD-STO-001`, `SRS-STO-005`) is in scope only when the accessory is reached through the controller port, sharing its signals (N64 Controller Pak, Dreamcast VMU); it then adds no channels to the baseline. Memory cards in a dedicated card slot (GameCube, PlayStation, PlayStation 2) and the Original Xbox Memory Unit are out of scope, so no card-slot interface is provided. |
 | ICD-CAP-019 | P | Emulated memory accessory contents are held in an external non-volatile device, proposed FRAM (`SRS-STO-008`, `ICD-STO-001`). Its SPI/QSPI signals, 3.3 V supply and decoupling are part of the adapter and are counted in the GPIO budget (section 8.3). The device is never reachable from a console-facing signal. |
+| ICD-CAP-020 | P | A profile that emulates a multitap (`SRS-SYS-010`, `SAD-P-013`) presents it through the console's own controller connector. The channels its protocol needs beyond the section 8.2 baseline are counted in the profile's GPIO budget: from the secondary sources, the SNES multitap adds Data2 and IOBit (two channels per tapped port) and the Mega Drive taps need TR as a direction-controlled channel, while the NES, PlayStation and Saturn taps add none; the PlayStation 2 tap is unverified (it may also use the memory-card slot, `ICD-CAP-018`). An unrouted slot follows `SRS-IN-014`. |
 
-### 8.2 Console channel sizing baseline (two emulated ports)
+### 8.2 Console channel sizing baseline (emulated ports)
 
 Direction is relative to the adapter. Values are leads from the secondary
 sources of `ICD-REF-001` (confidence: secondary, unverified) except where a
 review correction is noted. Channel counts are the minimum for standard
-controller operation; bidirectional channels are counted once.
+controller operation; bidirectional channels are counted once. Each console is
+sized for all its native controller ports (`SRS-SYS-009`); a multitap changes the
+count only as `ICD-CAP-020` states.
 
-| Console | Signals per port | Channels per port | Two-port channels | Notes and corrections |
-|---|---|---:|---:|---|
-| NES | Clock in, Latch in, Data out | 3 | 6 | Accessory signals excluded |
-| SNES | Clock in, Latch in, Data out | 3 | 6 | `Data2`, `IOBit` excluded |
-| Mega Drive | Up, Down, Left, Right, TL, TR out; TH in | 7 | 14 | Six-button mode mandatory, three-button through the same interface; measure TH-edge timing and idle timeout |
-| Saturn | D0..D3 out, **TL out**; TH, TR in | 7 | 14 | Corrected: TL is a pad-driven handshake output (EIC held it as a static bias, 6 channels, 12 total); the 3D Control Pad is in scope |
-| Nintendo 64 | Data bidirectional, open-drain | 1 | 2 | 3.3 V open-drain; the other two connectors of the four-port console are not populated |
-| GameCube | Data bidirectional, open-drain | 1 | 2 | As N64 |
-| Dreamcast | SDCKA, SDCKB bidirectional | 2 | 4 | Drive type, levels and presence/sense line unresolved (primary Maple documentation needed); reserve one presence/sense channel per port (+2, to be confirmed) |
-| PlayStation | CMD, ATT, CLK in; DATA, ACK open-drain out | 5 | 10 | |
-| PlayStation 2 | As PlayStation | 5 | 10 | |
-| Original Xbox | One USB full-speed device interface | 1 USB | 2 USB | Not a digital channel; one processor per port |
+| Console | Native ports | Signals per port | Channels per port | Channels, all ports | Notes and corrections |
+|---|---:|---|---:|---:|---|
+| NES | 2 | Clock in, Latch in, Data out | 3 | 6 | Accessory signals excluded |
+| SNES | 2 | Clock in, Latch in, Data out | 3 | 6 | `Data2`, `IOBit` excluded (a multitap needs them, `ICD-CAP-020`) |
+| Mega Drive | 2 | Up, Down, Left, Right, TL, TR out; TH in | 7 | 14 | Six-button mode mandatory, three-button through the same interface; measure TH-edge timing and idle timeout |
+| Saturn | 2 | D0..D3 out, **TL out**; TH, TR in | 7 | 14 | Corrected: TL is a pad-driven handshake output (EIC held it as a static bias, 6 channels, 12 total); the 3D Control Pad is in scope |
+| Nintendo 64 | 4 | Data bidirectional, open-drain | 1 | 4 | 3.3 V open-drain; all four connectors are emulated |
+| GameCube | 4 | Data bidirectional, open-drain | 1 | 4 | As N64 |
+| Dreamcast | 4 | SDCKA, SDCKB bidirectional | 2 | 8 | Drive type, levels and presence/sense line unresolved (primary Maple documentation needed); reserve one presence/sense channel per port (+4, to be confirmed) |
+| PlayStation | 2 | CMD, ATT, CLK in; DATA, ACK open-drain out | 5 | 10 | |
+| PlayStation 2 | 2 | As PlayStation | 5 | 10 | |
+| Original Xbox | 4 | One USB full-speed device interface | 1 USB | 4 USB | Not a digital channel; one processor per port |
 
-Largest console channel count: 14 (Mega Drive and Saturn, two ports).
+Largest console channel count: 14 (Mega Drive and Saturn, two ports); the
+Dreamcast reaches 12 with its presence lines at four ports.
 
 ### 8.3 Adapter system I/O and GPIO budget
 
-| Function | GPIO | Note |
-|---|---:|---|
-| Bus UART TX, RX and RS-485 direction/enable | 3 | Through the isolated transceiver |
-| Console power sense (one per emulated port) | 2 | Sense-only (`ICD-PWR-002`) |
-| Physical commissioning enable | 1 | `PS-DISCOVERY` |
-| Recovery/boot-select input | 1 | `ICD-DBG-001` |
-| Status LEDs | 2 | |
-| **System I/O total** | **9** | Translator direction/enable lines not yet counted: depends on translator selection |
+| Function | GPIO (two ports) | GPIO (four ports) | Note |
+|---|---:|---:|---|
+| Bus UART TX, RX and RS-485 direction/enable | 3 | 3 | Through the isolated transceiver |
+| Console power sense (one per emulated port) | 2 | 4 | Sense-only (`ICD-PWR-002`); a profile whose ports share one console supply may sense once |
+| Physical commissioning enable | 1 | 1 | `PS-DISCOVERY` |
+| Recovery/boot-select input | 1 | 1 | `ICD-DBG-001` |
+| Status LEDs | 2 | 2 | |
+| **System I/O total** | **9** | **11** | Translator direction/enable lines not yet counted: depends on translator selection |
 
-| Console | Console channels | System I/O | Total GPIO | Share of RP2350A (30) | Margin rule (21) |
-|---|---:|---:|---:|---:|---|
-| NES, SNES | 6 | 9 | 15 | 50 % | Within |
-| Nintendo 64, GameCube | 2 | 9 | 11 | 37 % | Within |
-| Dreamcast (with +2 presence, to be confirmed) | 6 | 9 | 15 | 50 % | Within |
-| PlayStation, PlayStation 2 | 10 | 9 | 19 | 63 % | Within |
-| Mega Drive, Saturn | 14 | 9 | 23 | 77 % | Exceeds: RP2350B (48 GPIO) or a split design |
+| Console | Ports | Console channels | System I/O | Total GPIO | Share of RP2350A (30) | Margin rule (21) |
+|---|---:|---:|---:|---:|---:|---|
+| NES, SNES | 2 | 6 | 9 | 15 | 50 % | Within |
+| Nintendo 64, GameCube | 4 | 4 | 11 | 15 | 50 % | Within |
+| Dreamcast (with +4 presence, to be confirmed) | 4 | 12 | 11 | 23 | 77 % | Exceeds: RP2350B (48 GPIO, 33 within the margin rule) or a split design |
+| PlayStation, PlayStation 2 | 2 | 10 | 9 | 19 | 63 % | Within |
+| Mega Drive, Saturn | 2 | 14 | 9 | 23 | 77 % | Exceeds: RP2350B (48 GPIO) or a split design |
+
+A two-port build of an N64, GameCube or Dreamcast adapter (`SRS-SYS-009`) uses
+the two-port figures: 11, 11 and 15. A multitap changes these figures only as
+`ICD-CAP-020` states; for example the SNES with a multitap on each port needs 10
+channels and 19 GPIO.
 
 Memory accessory storage device (`ICD-CAP-019`, only for profiles with one),
 counted separately from the table above. The shared SPI bus (owner decision) adds
-5 GPIO:
+7 GPIO at four ports (SCK, MOSI, MISO and four chip selects; 5 at two ports):
 
 | Console | Table total | Storage device GPIO | Total | Share of RP2350A (30) | Margin rule (21) |
 |---|---:|---:|---:|---:|---|
-| Nintendo 64 | 11 | 5 | 16 | 53 % | Within |
-| Dreamcast | 15 | 5 | 20 | 67 % | Within (one GPIO spare) |
+| Nintendo 64 | 15 | 7 | 22 | 73 % | Exceeds by one (19 and within if the profile senses console power once) |
+| Dreamcast | 23 | 7 | 30 | 100 % | Exceeds: RP2350B (30 of its 33 margin GPIO) |
 
-Translator direction/enable lines are still not counted, so the Dreamcast margin
-is thin; a separate bus per port (8 GPIO, 23 in total for the Dreamcast) would
-exceed it and is not adopted.
+Translator direction/enable lines are still not counted. At four ports the
+Dreamcast exceeds the RP2350A margin even before storage (23), so it needs the
+RP2350B, where 30 of 33 leaves little for translators. A separate bus per port
+(16 GPIO, 39 in total for the Dreamcast) would exceed even the RP2350B margin and
+is not adopted; two buses of two devices (three more GPIO, 33 in total, at the
+limit) remain the fallback of `ICD-STO-001`.
 
 The 30 and 48 GPIO figures are for the RP2350A and RP2350B packages
 (`SAD-P-007`) and are to be re-verified in `ICD-PLAT-001`. The Original Xbox
@@ -470,9 +488,9 @@ is why `ICD-CAP-003` requires external translation for every console-facing sign
 | Item | Baseline (class P unless noted) |
 |---|---|
 | Processor | One RP2350 family part (`SRS-HW-005`) |
-| USB host | Native full-speed controller behind a USB hub IC; at least two downstream ports for the two players; per-port switched VBUS with current limit and overcurrent detection (`ICD-PWR-001`) |
+| USB host | Native full-speed controller behind a USB hub IC; at least four downstream ports for the four players; per-port switched VBUS with current limit and overcurrent detection (`ICD-PWR-001`); four devices (an interrupt IN endpoint each, plus an OUT endpoint where a device takes rumble over one) and the hub IC's status endpoint fit the host controller's 15 interrupt endpoints (SDK register layout; to be confirmed in `ICD-PLAT-001`) |
 | VBUS current | 500 mA per downstream port (USB 2.0 unit-load limit); wheels or other heavy devices are not covered (Future) |
-| Power input | External 5 V supply sized from the budget: two downstream ports, hub IC, MCU, transceiver, isolator and display with margin (about 2 A as a starting figure, to be confirmed) |
+| Power input | External 5 V supply sized from the budget: four downstream ports (4 x 500 mA), hub IC, MCU, transceiver, isolator and display with margin (about 3 A as a starting figure, to be confirmed) |
 | Bus transceiver | Isolated RS-485 transceiver with isolated power, driver default-disabled (`ICD-NET-001`) |
 | Local I/O | Owner selector and indicators (`SRS-UI-001`); player-assignment input (`SRS-UI-002`); small display (`SRS-UI-003`); recovery/boot input; all counted in the hub GPIO budget |
 | Protection | ESD on USB and bus connectors, reverse-polarity and overcurrent protection on the supply input |
@@ -499,18 +517,19 @@ one-to-one onto ICD-VER-nnn for 001..014 and are retired.
 | ICD-VER-007 | ICD-CAP-005 | Independent channel direction control | Each channel's direction changes without a glitch on any other channel above the supplement limit |
 | ICD-VER-008 | ICD-CAP-005, 009 | Bidirectional operation | Turnaround within the supplement's delay budget at the nominal signalling rate |
 | ICD-VER-009 | ICD-CAP-005 | Absence of contention | No interval in which adapter and console both drive a line (current and waveform capture) |
-| ICD-VER-010 | ICD-CAP-011 | USB full-speed operation on both emulated Xbox ports | Both ports enumerate and carry reports simultaneously for 10 minutes without error |
+| ICD-VER-010 | ICD-CAP-011 | USB full-speed operation on every emulated Xbox port | All emulated ports (four in a four-port profile) enumerate and carry reports simultaneously for 10 minutes without error |
 | ICD-VER-011 | ICD-CAP-007, 012 | Power sequencing and back-power prevention | Current into any unpowered side below the supplement limit in every partial-power order |
 | ICD-VER-012 | ICD-CAP-008 | ESD and overvoltage protection | Passes the levels set by the ESD plan of `SRS-ENV-001` (not executable until that plan exists) and the console timing is unchanged |
 | ICD-VER-013 | ICD-CAP-012 | Port power current limiting | Limit and trip current as set by the supplement; no damage on a short |
-| ICD-VER-014 | ICD-CAP-013, 014 | Operation under simultaneous port activity | Both ports and the bus active at maximum load meet the supplement's timing and the 70 % resource margin |
+| ICD-VER-014 | ICD-CAP-013, 014 | Operation under simultaneous port activity | All emulated ports and the bus active at maximum load meet the supplement's timing and the 70 % resource margin |
 | ICD-VER-015 | ICD-CAP-006, 007 | Unpowered MCU with powered console | Each channel stays high-impedance and no console-observed level change beyond the supplement limit; repeated across silicon steppings of `ICD-PLAT-001` |
 | ICD-VER-016 | SRS-OWN-013 | Neutralisation visible at the console | Measured time from REVOKE acknowledgement to neutral state at the console connector, including an in-flight transaction, at most the declared `neutralisation_bound_us` and at most 1 ms |
 | ICD-VER-017 | SRS-NET-010, ICD-NET-001 | Baud error and sampling margin | Measured per-node error within the budget, sampling margin positive with isolator and transceiver distortion, no framing errors in 10 minutes at full cadence |
-| ICD-VER-018 | ICD-USB-001, SAD-P-009 | Hub two-device acceptance | Two HID devices, one low-speed and one full-speed, enumerate through the hub IC, report at their descriptor intervals for 10 minutes with no missed report (no sequence gap over twice the interval) and no enumeration loss on hot-plug |
-| ICD-VER-019 | ICD-HUB-001 | Hub VBUS limiting | Each downstream port limits and reports overcurrent at its configured limit and recovers without disturbing the other port |
+| ICD-VER-018 | ICD-USB-001, SAD-P-009 | Hub four-device acceptance | Four HID devices, at least one low-speed and one full-speed, enumerate through the hub IC, report at their descriptor intervals for 10 minutes with no missed report (no sequence gap over twice the interval) and no enumeration loss on hot-plug; unplugging and reconnecting one device does not disturb the reports of the others |
+| ICD-VER-019 | ICD-HUB-001 | Hub VBUS limiting | Each downstream port limits and reports overcurrent at its configured limit and recovers without disturbing the other ports |
 | ICD-VER-020 | ICD-NET-001, PS-TIMING | Isolated bus delays at 2 Mbit/s | Isolator propagation plus driver enable/disable delay fit the 20 us disable allowance and 50 us earliest-response gap with margin, and isolator pulse-width distortion leaves a positive sampling margin on a 500 ns bit |
-| ICD-VER-021 | ICD-CAP-018, ICD-CAP-019, ICD-STO-001 | Memory accessory per port | The console formats, saves, loads and copies an accessory of the declared capacity from both ports at the same time; an inactive console reads its own accessory; every read and write of the storage device meets the console's response limit at the worst-case access time including the shared-bus wait with both consoles active; power removed during a block write and during a maintenance commit leaves a valid old or new image (a torn block is absorbed as the profile states); the endurance figure and export/import time meet the resource table |
+| ICD-VER-021 | ICD-CAP-018, ICD-CAP-019, ICD-STO-001 | Memory accessory per port | The console formats, saves, loads and copies an accessory of the declared capacity from all emulated ports at the same time; an inactive console reads its own accessory; every read and write of the storage device meets the console's response limit at the worst-case access time including the shared-bus wait with all ports active; power removed during a block write and during a maintenance commit leaves a valid old or new image (a torn block is absorbed as the profile states); the endurance figure and export/import time meet the resource table |
+| ICD-VER-022 | ICD-CAP-020, SRS-SYS-010 | Multitap emulation (only for a profile that emulates one) | With the declared tap model, the console detects the tap, reads every populated slot independently and shows the idle identity on an unrouted slot; a game that supports the tap runs with up to four players; neutral state after REVOKE is visible within the declared `neutralisation_bound_us` across a full tap read; the extra channels meet the supplement's dynamics |
 
 ## 11. Registers
 
@@ -520,7 +539,7 @@ one-to-one onto ICD-VER-nnn for 001..014 and are retired.
 |---|---|
 | Datasheet and revision consulted | Not yet recorded. The datasheet to be used is the current Raspberry Pi RP2350 datasheet (document RP-008373-DS at the revision current on the retrieval date) |
 | Stepping(s) targeted | Not yet recorded |
-| Facts to verify before Step 4 | Package/GPIO variants (30 and 48 GPIO), PIO blocks and state machines, single USB controller and its host mode, OTP user area and locking behaviour, hardware random number generator, GPIO input voltage tolerance conditions, flash/XIP behaviour |
+| Facts to verify before Step 4 | Package/GPIO variants (30 and 48 GPIO), PIO blocks and state machines, single USB controller, its host mode and its host interrupt-endpoint count (15 in the SDK register layout), OTP user area and locking behaviour, hardware random number generator, GPIO input voltage tolerance conditions, flash/XIP behaviour |
 | Errata to check | Any published erratum on GPIO pad leakage, input pull-down behaviour or high-impedance behaviour on the targeted stepping |
 
 | Errata ID | Stepping | Affected interface | Mitigation | Status |

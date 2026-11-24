@@ -5,13 +5,14 @@
 | Document ID | RPN-EIC (deprecated; identifier not reused) |
 | Revision | 0.1 |
 | Status | **Deprecated 2026-11-18** - engineering notes, not a specification; carries no requirements |
-| Date | 2026-11-18 |
+| Date | 2026-11-24 |
 | Companion documents | None. Superseded by [RPN-ICD](ICD.md), sections 8 to 11 |
 
 | Revision | Change history |
 |---|---|
 | 0.1 | Initial repository draft (2026-11-16): console electrical capability baseline, signal-channel counts and aggregate resource requirements. |
 | 0.1 (2026-11-18) | Deprecated by the owner's answer to REVIEW-001 RR-001-008: no longer an individual document; useful content merged into the ICD; duplicate history table removed. |
+| 0.1 (2026-11-24) | Deprecation notice updated after the owner's four-player decision: the four-port difference was removed and the pointer to ICD sections 8.2 and 8.3 corrected. |
 
 > **Deprecation notice.** This file was added without applying the project
 > standards (identifiers, classification, provenance, precedence). It is kept
@@ -21,8 +22,6 @@
 >
 > Known differences from the current ICD (do not rely on this file):
 >
-> - the notes size N64, GameCube, Dreamcast and Xbox for four ports; the project
->   scope is two emulated ports (`SRS-SYS-009`);
 > - the notes treat Saturn TL as a static bias and count 6 channels per port;
 >   the ICD counts 7 (TL is an output) and recomputes the totals;
 > - the notes require every channel to support 3.3 V and 5 V push-pull, open-drain
@@ -37,7 +36,7 @@
 > |---|---|
 > | Sections 1-3, 9 (purpose, scope, architecture, constraints) | `ICD-CAP-001..012` and `ICD-CAP-017` |
 > | Sections 4-5 (capabilities, channel definition) | `ICD-CAP-003..009` |
-> | Sections 6-7 (console tables, aggregate resources) | ICD section 8.2 and 8.3 (two-port, corrected) |
+> | Sections 6-7 (console tables, aggregate resources) | ICD section 8.2 and 8.3 (corrected; two ports, or four for N64, GameCube, Dreamcast and Xbox) |
 > | Section 8 (power domains) | ICD section 8.5 and `ICD-PWR-002` |
 > | Section 10 (`EIC-VER-001..014`, retired) | `ICD-VER-001..014`, plus `ICD-VER-015..020` |
 > | Section 11 (open items) | ICD-CON-001 supplements and `ICD-QUAL-001` |

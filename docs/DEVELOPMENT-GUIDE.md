@@ -82,7 +82,7 @@ need to be complete or free of all technical unknowns.
 **Goal:** obtain a coherent working draft, not a frozen design.
 
 - Resolve conflicting definitions across requirements, interfaces and protocol.
-- Check that two-player routing, ownership, neutralisation and recovery agree.
+- Check that multi-player routing (up to four players), ownership, neutralisation and recovery agree.
 - Separate owner decisions from questions needing a calculation or experiment.
 - Classify each open issue as **blocks the next step**, **needs prototype
   evidence**, or **can wait**.
@@ -106,7 +106,7 @@ Decide explicitly:
 |---|---|
 | Console | One family and identified hardware variant |
 | Virtual peripheral | One controller mode per port; no implied support for every accessory |
-| Players | Two independent players and two console ports |
+| Players | Two independent players and two console ports for the first slice (the system ceiling is four, SRS-SYS-002) |
 | Physical devices | Two identified devices, initially preferably wired USB |
 | Ownership | Manual selection first, using the full safe transition mechanism |
 | Accessories/feedback | Explicitly included or excluded for this milestone |
@@ -240,6 +240,10 @@ Storage, firmware update, automatic ownership, Bluetooth and specialised
 peripherals each require their own acceptance and failure-recovery tests.
 The order depends on your priorities and dependencies, not on a need to
 complete every optional service before trying a second console.
+
+Four-player operation, four-port consoles and multitaps are increments of this
+kind: each extends the evidence of SRS-V-002 and SRS-V-007 to its port count and
+needs its own resource table (ICD-CON-001).
 
 ## Rules for staying on track
 

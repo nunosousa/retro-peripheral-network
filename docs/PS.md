@@ -5,7 +5,7 @@
 | Document ID | RPN-PS |
 | Revision | 0.1 |
 | Status | Draft - provisional profile, not interoperability validated |
-| Date | 2026-11-18 |
+| Date | 2026-11-24 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-ICD](ICD.md), [RPN-SAD](SAD.md) |
 
 | Revision | Change history |
@@ -15,6 +15,7 @@
 | 0.1 (2026-11-18, owner decision) | Line rate raised to 2 Mbit/s (trunk under 5 m): PS-TIMING bit time, timeout classes (short up to 140 wire bytes at 1.0 ms, long 1.5 ms), cycle budget and latency bounds recomputed; display service recorded as a proposed Future service (`PS-SVC-DISPLAY`) at lowest priority with adapter-declared chunk size. |
 | 0.1 (2026-11-18, owner decision) | Storage note updated for an external FRAM backend (bank flip commit; no wire change). |
 | 0.1 (2026-11-18, owner decision) | Memory-card accessories described as Storage resources with transfer times (PS-SVC-STORAGE); no wire change. |
+| 0.1 (2026-11-24, owner decision) | Four players: players 0..3, ports 0..3 and 1..4 routes per owner; INPUT size, cycle budget, latency, feedback slots and display budget recomputed for four records; neutral record for an absent device (`PS-DATA-INPUT`) and idle identity on unrouted ports (`PS-OWNERSHIP`); no change to message layouts. |
 
 ## 1. PS-PROFILE: scope and conventions
 
@@ -42,9 +43,9 @@ Initial limits:
 | Unassigned address | 254; only in targeted commissioning replies |
 | Commissioning destination | 255; only DISCOVER_UID and ASSIGN_UID |
 | Other addresses | Reserved; not valid sources/destinations |
-| Players | 0, 1 |
-| Ports | 0, 1 if advertised; not necessarily physical connector numbering |
-| Routes per owner | 1..2; distinct players and ports; no fan-out |
+| Players | 0..3 |
+| Ports | 0..3 if advertised; not necessarily physical connector numbering |
+| Routes per owner | 1..4; distinct players and ports; no fan-out |
 | Payload maximum | 192 bytes |
 | Outstanding requests | One on the entire bus |
 | Live console owners | One |
@@ -221,8 +222,8 @@ the established session's transaction cache/high-water mark.
 | Response timeout | Per opcode, from the request last stop bit: 1.0 ms (short class) or 1.5 ms (long class); see below |
 | Bus idle guard after response or timeout | At least 50 us; sender driver disabled within 20 us of its last stop bit |
 | Isolated transceiver (`SAD-P-010`) | Propagation, driver-enable and driver-disable delays of the isolated interface count inside the 20 us disable allowance and 50 us earliest-response gap and shall be measured (`ICD-VER-020`) |
-| Armed input cadence | One complete INPUT exchange each 5 ms |
-| Feedback poll cadence | One FEEDBACK_POLL to the owner every 10 ms (every second cycle) while armed |
+| Armed input cadence | One complete INPUT exchange (every configured record, up to four) each 5 ms |
+| Feedback poll cadence | One FEEDBACK_POLL to the owner every 10 ms (every second cycle) while armed; polling every cycle is permitted and fits the budget below (continuous rumble on four routes uses four of the ten polls in each 100 ms) |
 | Display poll (Future, `PS-SVC-DISPLAY`) | Lowest priority; at most one exchange per cycle, never in a cycle where its timeout path would end after the next INPUT slot |
 | Adapter lease | 100 ms since acceptance of ARM or newer complete INPUT |
 | Local neutralisation delay | At most the adapter's declared `neutralisation_bound_us` (CAPS kind 4), which shall not exceed 1 ms for a conforming profile |
@@ -257,10 +258,13 @@ A new opcode shall declare its class from its maximum response size.
 
 Exchange time is `request wire + 0.25 + response wire + 0.05` on success and
 `request wire + timeout + 0.05` on timeout (2 Mbit/s, 5 us per wire byte; wire
-bytes are raw bytes plus COBS overhead plus the delimiter).
+bytes are raw bytes plus COBS overhead plus the delimiter). Values are rounded
+to 0.01 ms, times up and slack down. INPUT is sized for its maximum, four
+records; fewer records take less time.
 
 | Exchange | Request / response wire bytes | Success (ms) | Timeout path (ms) |
 |---|---|---:|---:|
+| INPUT (four players, maximum) | 161 / 53 | 1.37 | 1.86 |
 | INPUT (two players) | 97 / 43 | 1.00 | 1.54 |
 | FEEDBACK_POLL | 32 / 46 | 0.69 | 1.21 |
 | STATUS | 28 / 52 | 0.70 | 1.19 |
@@ -271,10 +275,11 @@ bytes are raw bytes plus COBS overhead plus the delimiter).
 
 | 5 ms cycle | Content | All succeed (ms) | All time out (ms) | Slack in the worst case (ms) |
 |---|---|---:|---:|---:|
-| Feedback cycle (every 10 ms) | INPUT + FEEDBACK_POLL + one STATUS | 2.39 | 3.94 | 1.06 |
-| Other cycle | INPUT + one STATUS | 1.70 | 2.73 | 2.28 |
+| Feedback cycle (every 10 ms, or every cycle if polled each cycle) | INPUT + FEEDBACK_POLL + one STATUS | 2.76 | 4.26 | 0.74 |
+| Other cycle | INPUT + one STATUS | 2.07 | 3.05 | 1.95 |
 
-Every combination of success and timeout in these cycles ends inside 5 ms, so
+Both cycles use the four-record INPUT, the worst case. Every combination of
+success and timeout in these cycles ends inside 5 ms, so
 a timeout of any one exchange cannot push the INPUT of the next cycle late.
 Status rotation of one roster node per cycle refreshes 31 nodes in 155 ms, inside
 the 500 ms automatic-selection freshness window.
@@ -284,30 +289,36 @@ Scheduler rules:
 - A non-input exchange is admitted only if its worst-case timeout path ends
   before the next reserved INPUT slot, evaluated from the actual end of the
   preceding exchange. A maximum-size WRITE (2.15 ms) is therefore admitted after
-  a successful INPUT (1.00 + 2.15 = 3.15 ms) and after INPUT, FEEDBACK_POLL and
-  STATUS all succeed (4.54 ms), but not after all three time out (6.09 ms); the
+  a successful INPUT (1.37 + 2.15 = 3.52 ms) and after INPUT, FEEDBACK_POLL and
+  STATUS all succeed (4.91 ms), but not after all three time out (6.41 ms); the
   scheduler shrinks or defers management chunks that do not fit.
 - Priority order within a cycle: INPUT, then FEEDBACK_POLL and STATUS, then
   management chunks, then display (lowest). A display exchange never delays or
   replaces an INPUT, FEEDBACK_POLL or STATUS that is due, and is admitted only
   by the rule above. Worst case a display exchange after INPUT, FEEDBACK_POLL and
-  STATUS all succeed ends at 3.61 ms; after all three time out it would end at
-  5.16 ms and is therefore skipped.
+  STATUS all succeed ends at 3.98 ms; after all three time out it would end at
+  5.48 ms and is therefore skipped.
 - INPUT is never retried. A lost or timed-out INPUT is replaced by the next
   cycle's INPUT with the newest sample and a new transaction ID.
 - Other retries are separate scheduled slots; never queue several retries ahead
   of a newer input deadline.
 
-Two-player INPUT uses 69 payload bytes: 95 raw bytes, at most 97 wire bytes,
-0.485 ms. Its ACK has 15 payload bytes: 41 raw, at most 43 wire bytes, 0.215 ms.
-A successful exchange occupies at most `0.485 + 0.25 + 0.215 + 0.05 = 1.00 ms`, or
-20 % of the 5 ms cycle; with its 1.0 ms timeout it occupies `0.485 + 1.0 + 0.05 =
-1.54 ms`.
+INPUT with n records uses `5 + 32n` request payload bytes and `5 + 5n` ACK
+payload bytes, so each further player adds 37 payload bytes and 0.185 ms to a
+successful exchange. The maximum, four players, uses 133 payload bytes: 159 raw
+bytes, at most 161 wire bytes, 0.805 ms. Its ACK has 25 payload bytes: 51 raw, at
+most 53 wire bytes, 0.265 ms. A successful exchange occupies at most
+`0.805 + 0.25 + 0.265 + 0.05 = 1.37 ms`, or 27 % of the 5 ms cycle; with its
+1.0 ms timeout it occupies `0.805 + 1.0 + 0.05 = 1.855 ms`. Two players take
+1.00 ms (20 %) and 1.535 ms. The 192-byte payload bound limits INPUT to five
+records (165 bytes), so four leave 59 bytes spare; more than four players would
+need a negotiated minor and a recomputed cycle budget (`SAD-F-001`).
 
 Latency: a sample that becomes available just after a scheduling boundary waits
-at most 5 ms, then needs at most `0.485 + 0.25 = 0.735 ms` to be installed, so at
-most 5.74 ms in the normal profile (SRS-PERF-001, 10 ms). One lost INPUT adds one
-cadence, giving at most 10.74 ms (SRS-PERF-005, 12 ms). The 5 ms cadence, not the
+at most 5 ms, then needs at most `0.805 + 0.25 = 1.055 ms` to be installed, so at
+most 6.06 ms in the normal profile with four records (SRS-PERF-001, 10 ms; two
+records 5.74 ms). One lost INPUT adds one cadence, giving at most 11.06 ms
+(SRS-PERF-005, 12 ms; two records 10.74 ms). The 5 ms cadence, not the
 line rate, dominates this figure. The end-to-end target of
 SRS-PERF-004 still requires measured hub processing and adapter installation, not
 only this serialization calculation.
@@ -427,12 +438,13 @@ minor; select the highest mutually supported minor within major 0.
 HELLO response (34 bytes):
 `uid[16], boot_id:u64, selected_minor:u8, service_bitmap:u32,
 port_count:u8, max_routes:u8, max_payload:u16, commissioning_enabled:u8`.
-Profile 0.1 advertises `max_payload=192`, `port_count=1..2`, `max_routes=1..2`;
+Profile 0.1 advertises `max_payload=192`, `port_count=1..4`, `max_routes=1..4`;
 commissioning_enabled must be 0 before arming. Boot ID is a new nonzero,
 practically non-repeating value on each adapter boot.
 
 CAPS request: `kind:u8, index:u16`. Indexes enumerate 0 upwards per kind;
-NOT_FOUND terminates a list. A list holds at most 64 entries (indexes 0..63);
+NOT_FOUND terminates a list. A list holds at most 64 entries (indexes 0..63), which at four ports allows sixteen
+port/peripheral/mapping combinations per port;
 an index of 64 or more returns BAD_VALUE, and so does an unknown kind. Lists remain immutable for a boot ID.
 
 | Kind | Response after `kind:u8, index:u16` | Meaning |
@@ -493,6 +505,8 @@ other bits zero. OK response: `generation:u32`.
 The hub chooses a nonzero generation, increasing for each route replacement
 within a session, never wrapping. ROUTES is accepted only while inhibited or
 configured, not armed or in maintenance. All routes are replaced atomically.
+A port that has no route in the accepted set presents the profile's default idle
+identity with neutral controls (`SRS-IN-014`).
 The adapter checks required versus source masks, descriptor IDs, lossy
 approval and simultaneous hardware resources. It also rejects (INCOMPATIBLE) a
 peripheral that would change the identity the console currently sees, unless the
@@ -565,6 +579,19 @@ Physical triggers represented digitally can also advertise generic button
 positions only through an explicit normalisation/mapping policy, not an
 unannounced console-dependent substitution.
 
+**Neutral record.** A route whose physical device is absent (removed, lost, or
+replaced and not yet validated) stays in every INPUT: `valid_buttons`,
+`valid_axes`, `buttons` and every axis are 0, and `sample_sequence` still
+increases. The adapter installs it like any other record, so that port keeps its
+peripheral identity and presents neutral controls, while the other records, the
+generation and the lease are unaffected (`SRS-IN-013`, `SAD-D-010`). The hub never
+omits a configured record and does not inhibit the generation because a device
+was removed. A replacement that supplies every control in the route's
+`source_buttons` and `source_axes` resumes in place with its first fresh sample
+(the hub sends only controls inside those masks);
+any other replacement keeps the record neutral until the routes are replaced
+(release, ROUTES, ARM).
+
 sample_sequence is nonzero and strictly increases per route generation.
 Every periodic snapshot gets a new sequence even if controls are unchanged.
 The first sequence may be 1; no wrap. All records must be newer than their
@@ -603,7 +630,9 @@ duration_ms:u16, value0:u16, value1:u16`.
 
 Events are held until acknowledged on a later poll. The hub polls the owner
 adapter every 10 ms while armed (`PS-TIMING` cycle budget), so a continuous
-effect that needs a refresh at least every 100 ms is served ten times over. The
+effect that needs a refresh at least every 100 ms is served ten times over. With
+four routes, continuous rumble uses four of the ten polls in each 100 ms, and the
+hub may poll every cycle to double that capacity. The
 adapter reports the console's native effect richness; the hub reduces it to what
 the bound physical device supports (`SAD-FB-001`). The hub acknowledges only
 after processing or explicitly discarding a stale/unsupported event with a
@@ -621,9 +650,9 @@ on receipt, never replays duplicate event IDs and never extends an effect on
 a duplicate response. Explicit zero values stop the effect. Longer effects
 require fresh events. Ownership loss stops all effects immediately at the hub.
 
-The adapter keeps at most one pending latest event per route/kind (four total),
-plus one delivered head retained unchanged until acknowledged (five slots
-maximum). Replacing a pending event increments feedback_overflows and allocates
+The adapter keeps at most one pending latest event per route/kind (eight total at
+four routes), plus one delivered head retained unchanged until acknowledged (nine
+slots maximum). Replacing a pending event increments feedback_overflows and allocates
 a new event ID. Changes to the delivered head's route/kind coalesce into its
 pending slot, not into the held event. After acknowledging the head, the
 lowest-ID pending event becomes the new head, preserving increasing delivery.
@@ -711,9 +740,9 @@ one resource whose `size` is the console-visible capacity (128 KiB for the
 largest in-scope lead, well inside `u32`). The image is the adapter's authoritative copy,
 including console checksums and identity, which the network treats as opaque
 bytes. Full replacement matches an accessory image. Because only one token may
-be open, two accessories are transferred one after another. At 183-byte chunks and
+be open, the accessories are transferred one after another. At 183-byte chunks and
 about 1.60 ms per exchange (`PS-TIMING`), one accessory takes about 0.3 s (32 KiB)
-or 1.1 s (128 KiB) on the bus. With an FRAM backend (`SAD-P-012`) WRITE chunks go
+or 1.1 s (128 KiB) on the bus, so four take about 1.2 s or 4.6 s. With an FRAM backend (`SAD-P-012`) WRITE chunks go
 straight to the idle bank, COMMIT verifies the staged image and flips the bank
 record (tens of milliseconds for 128 KiB), and there is no flash programming
 time; a backend that programs flash shall declare a maximum working time that
@@ -822,10 +851,10 @@ bus budget in `PS-TIMING` can be shown to hold.
   revoke, session change or device loss drop the held frame and reset `seq` to 0.
 - **Budget (at 2 Mbit/s).** A 96-byte chunk exchange takes 1.12 ms on success
   and 1.22 ms on the timeout path; a poll with nothing new takes 0.62 ms.
-  Two ports at 10 frames per second use about 4.5 % of bus time, and two ports
-  of idle polls at 10 Hz about 1.2 %. Display exchanges are admitted only in the
-  slack of a cycle, so INPUT timing, the 5.74 ms and 10.74 ms latency bounds and
-  the lease arithmetic are unchanged.
+  Four ports at 10 frames per second use about 9.0 % of bus time (2.24 ms per
+  frame per port), and four ports of idle polls at 10 Hz about 2.5 %. Display
+  exchanges are admitted only in the slack of a cycle, so INPUT timing, the
+  6.06 ms and 11.06 ms latency bounds and the lease arithmetic are unchanged.
 
 ## 9. Versioning, validation and unresolved work
 
@@ -839,7 +868,11 @@ Before firmware interoperability is claimed, tests shall include:
 
 - COBS empty/zero/254-byte-run vectors and maximum frame boundaries.
 - CRC check vector, PS-VECTOR-001 and additional full request/response golden bytes.
-- Single- and two-player size checks, masks, signed axes and all enum errors.
+- Size checks for one to four records (and rejection of a fifth), a neutral
+  record for an absent device, masks, signed axes and all enum errors.
+- Neutral record while LIVE: removing and reconnecting one player's device
+  leaves the other records, the generation and the lease unchanged; a replacement
+  that lacks a control in the route masks stays neutral until the routes are replaced.
 - Duplicate/reordered/lost requests and responses, reboot/session rollover,
   stale generation, lease expiry and lost revoke ACK.
 - Commissioning exact-retry after a lost ASSIGN reply, persisted-address boot,
