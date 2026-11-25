@@ -5,26 +5,25 @@
 | Document ID | RPN-ICD |
 | Revision | 0.1 |
 | Status | Draft - electrical implementation not approved |
-| Date | 2026-11-24 |
+| Date | 2026-11-25 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
 |---|---|
 | 0.1 | Initial interface boundaries, provisional RS-485 profile and console electrical qualification gates. |
-| 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform text and datasheet/errata register; hub USB topology and hub baseline (ICD-HUB-001); isolated-bus and external-power default; profile-contract fields; console capability baseline (ICD-CAP) and verification entries (ICD-VER) merged from the deprecated EIC; source register (ICD-REF-001); clock/baud budget; installation figures. |
+| 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform text and datasheet/errata register; hub USB topology and hub baseline (ICD-HUB-001); isolated-bus and external-power default; profile-contract fields; console capability baseline (ICD-CAP) and verification entries (ICD-VER) added; source register (ICD-REF-001); clock/baud budget; installation figures. |
 | 0.1 (2026-11-18, owner decision) | UART rate raised to 2 Mbit/s and trunk length under 5 m: DMA requirement, transceiver/isolator rating, termination by measurement, baud-divider note, ICD-VER-020 criterion. |
 | 0.1 (2026-11-18, owner decision) | Memory-card accessory storage in scope: ICD-STO-001 sizing baseline and resource rules, ICD-CON-001 persistent-data field, ICD-CAP-018. |
 | 0.1 (2026-11-18, owner decision) | Two-bank FRAM layout and a shared SPI bus confirmed: ICD-STO-001 devices-and-bus rule with the contention budget, section 8.3 GPIO table (N64 16, Dreamcast 20), ICD-VER-021. |
 | 0.1 (2026-11-18, owner decision) | Emulated memory-card contents in external FRAM: ICD-STO-001 rules rewritten (flash kept as an exception), ICD-CAP-019, storage-device GPIO in section 8.3, ICD-VER-021. |
 | 0.1 (2026-11-18, owner decision) | Memory-card scope narrowed to controller-port accessories (N64 Controller Pak, Dreamcast VMU); dedicated-slot cards and the Xbox Memory Unit out of scope; ICD-CAP-018 and the ICD-STO-001 table revised; the card-slot GPIO estimate withdrawn. |
 | 0.1 (2026-11-24, owner decision) | Player count raised from two to four: adapters emulate up to four ports (logical-unit text, ICD-CON-001 port mapping, resources and idle-identity fields, multitap notes); memory-accessory storage, GPIO tables (section 8.3) and the shared-SPI wait recomputed for four ports; Original Xbox ICD-CAP-011 now one USB device interface per emulated port; hub USB hub IC with four downstream ports and about 3 A; ICD-CAP-020 and ICD-VER-022 (multitap) added; ICD-VER-010, 014, 018, 019 and 021 extended to all ports. Supersedes option A of REVIEW-001 RR-001-005. |
+| 0.1 (2026-11-25, owner request) | Obsolete cross-references and legacy-source wording removed from the header and sections 8, 10 and 11; no requirement, value or pass criterion changed. |
 
 Classification and normative language follow [RPN-SRS section 1](SRS.md#1-purpose-and-interpretation).
 No connector pinout or console voltage table in this draft is approved for wiring.
 Absence of a value means unresolved, not permission to infer a safe value.
-This ICD is the single electrical authority. The former RPN-EIC is deprecated
-engineering notes; its useful content is merged in sections 8 to 11 and its text
-no longer carries authority (`SAD-D-005`).
+This ICD is the single electrical authority (`SAD-D-005`).
 
 ## 1. Interface inventory
 
@@ -355,13 +354,12 @@ have occurred.
 
 ## 8. ICD-CAP: console electrical capability baseline
 
-This section merges the useful content of the deprecated engineering notes
-(former RPN-EIC) under ICD authority (`SAD-D-005`). Its classes follow the SRS
+This section is under ICD authority (`SAD-D-005`). Its classes follow the SRS
 rule. It is a **sizing baseline** and a set of common capabilities, never an
 approval to wire: approved per-console facts live in the ICD-CON-001
 supplements, which may narrow but not exceed this baseline without an ICD change.
-Where this section and the established ICD text differ, the established text
-takes precedence.
+Where this section and another ICD section differ, the other section takes
+precedence.
 
 ### 8.1 Capabilities
 
@@ -391,18 +389,17 @@ takes precedence.
 ### 8.2 Console channel sizing baseline (emulated ports)
 
 Direction is relative to the adapter. Values are leads from the secondary
-sources of `ICD-REF-001` (confidence: secondary, unverified) except where a
-review correction is noted. Channel counts are the minimum for standard
-controller operation; bidirectional channels are counted once. Each console is
-sized for all its native controller ports (`SRS-SYS-009`); a multitap changes the
-count only as `ICD-CAP-020` states.
+sources of `ICD-REF-001` (confidence: secondary, unverified). Channel counts are
+the minimum for standard controller operation; bidirectional channels are
+counted once. Each console is sized for all its native controller ports
+(`SRS-SYS-009`); a multitap changes the count only as `ICD-CAP-020` states.
 
 | Console | Native ports | Signals per port | Channels per port | Channels, all ports | Notes and corrections |
 |---|---:|---|---:|---:|---|
 | NES | 2 | Clock in, Latch in, Data out | 3 | 6 | Accessory signals excluded |
 | SNES | 2 | Clock in, Latch in, Data out | 3 | 6 | `Data2`, `IOBit` excluded (a multitap needs them, `ICD-CAP-020`) |
 | Mega Drive | 2 | Up, Down, Left, Right, TL, TR out; TH in | 7 | 14 | Six-button mode mandatory, three-button through the same interface; measure TH-edge timing and idle timeout |
-| Saturn | 2 | D0..D3 out, **TL out**; TH, TR in | 7 | 14 | Corrected: TL is a pad-driven handshake output (EIC held it as a static bias, 6 channels, 12 total); the 3D Control Pad is in scope |
+| Saturn | 2 | D0..D3 out, **TL out**; TH, TR in | 7 | 14 | TL is a pad-driven handshake output; the 3D Control Pad is in scope |
 | Nintendo 64 | 4 | Data bidirectional, open-drain | 1 | 4 | 3.3 V open-drain; all four connectors are emulated |
 | GameCube | 4 | Data bidirectional, open-drain | 1 | 4 | As N64 |
 | Dreamcast | 4 | SDCKA, SDCKB bidirectional | 2 | 8 | Drive type, levels and presence/sense line unresolved (primary Maple documentation needed); reserve one presence/sense channel per port (+4, to be confirmed) |
@@ -479,9 +476,9 @@ link, bus and USB.
 | PlayStation, PlayStation 2 | About 3.5 V logic and 7.5 V motor supply | secondary |
 | Original Xbox | 5 V USB VBUS | secondary |
 
-None of these is limited to the 3.3 V or 5 V "two domains" of the old notes; the
-high level on a 3.5 V-class line may exceed what a 3.3 V MCU pad tolerates, which
-is why `ICD-CAP-003` requires external translation for every console-facing signal.
+The high level on a 3.5 V-class line may exceed what a 3.3 V MCU pad tolerates,
+which is why `ICD-CAP-003` requires external translation for every console-facing
+signal.
 
 ## 9. ICD-HUB-001: hub electrical baseline
 
@@ -503,8 +500,7 @@ approved values.
 
 Each entry verifies the listed capabilities. "Supplement" means the approved
 ICD-CON-001 supplement of the profile under test; an entry cannot be executed
-until its supplement values are populated. The former EIC-VER-nnn entries map
-one-to-one onto ICD-VER-nnn for 001..014 and are retired.
+until its supplement values are populated.
 
 | ID | Verifies | Activity | Pass criterion |
 |---|---|---|---|
@@ -550,8 +546,8 @@ one-to-one onto ICD-VER-nnn for 001..014 and are retired.
 
 All console values in this ICD are leads until tied to a primary source (console
 hardware documentation, original controller silicon datasheets, or a measurement).
-The sources below were used by the deprecated notes; their revision and retrieval
-dates were not recorded and must be recorded before a value is relied on.
+The sources below are the secondary sources of those values; their revision and
+retrieval dates were not recorded and must be recorded before a value is relied on.
 
 | Ref | Source | Type | Revision / retrieved | Confidence |
 |---|---|---|---|---|

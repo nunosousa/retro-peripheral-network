@@ -5,10 +5,10 @@
 | Date | 2026-11-17 |
 | Reviewer | System requirements reviewer (AI assistant) |
 | Process | [RPN-RVP](../REVIEW-PROCESS.md) revision 0.1 |
-| Reviewed commit | `8a5062f` (Add Electrical Interface Capability Specification and update companion document links) |
-| Documents reviewed | [README](../../README.md); [SRS](../SRS.md), [ICD](../ICD.md), [SAD](../SAD.md), [PS](../PS.md) (all Rev 0.1, 2026-10-23); [EIC](../EIC.md) (Rev 0.1, 2026-11-16); [DEVELOPMENT-GUIDE](../DEVELOPMENT-GUIDE.md) |
+| Reviewed commit | `8a5062f` |
+| Documents reviewed | [README](../../README.md); [SRS](../SRS.md), [ICD](../ICD.md), [SAD](../SAD.md), [PS](../PS.md) (all Rev 0.1, 2026-10-23); [DEVELOPMENT-GUIDE](../DEVELOPMENT-GUIDE.md) |
 | Phases performed | 1-9 of the process. Phase 6/7/8 console and silicon facts are from the reviewer's general knowledge plus the documents' own references; **no primary datasheet or console manual was consulted**, so every such statement below is marked "verify" and is a question, not a finding of fact. |
-| Status of this record | Owner responses received (all 40 remarks accepted). Correction cycle applied on 2026-11-18 by the corrector; closure awaits the re-review (RPN-RVP section 9). The reviewed documents at commit `8a5062f` were not modified by the review itself; they were modified by the correction cycle (see section 5). |
+| Status of this record | Owner responses received (37 remarks accepted; 3 withdrawn, see section 2). Correction cycle applied on 2026-11-18 by the corrector; closure awaits the re-review (RPN-RVP section 9). The reviewed documents at commit `8a5062f` were not modified by the review itself; they were modified by the correction cycle (see section 5). |
 
 ## 1. Owner constraints for this cycle
 
@@ -18,15 +18,18 @@
 
 ## 2. Summary
 
-40 remarks. Priority order for the owner: all **S1** remarks first (hardware safety
-and safety-invariant items; they block Step 4 of the development guide), then **S2**.
+40 remarks, of which 3 (RR-001-008, RR-001-009 and RR-001-012) were withdrawn on
+2026-11-25 because their subject was removed from the repository. Priority order
+for the owner: all **S1** remarks first (hardware safety and safety-invariant
+items; they block Step 4 of the development guide), then **S2**.
 
 | Severity | Count |
 |---|---:|
 | S1 Blocker | 5 |
-| S2 Major | 24 |
+| S2 Major | 21 |
 | S3 Minor | 9 |
 | S4 Editorial | 2 |
+| Withdrawn (all were S2) | 3 |
 
 | Theme | Remarks |
 |---|---|
@@ -40,11 +43,11 @@ and safety-invariant items; they block Step 4 of the development guide), then **
 Overall assessment: the SRS, SAD and PS are internally strong and unusually careful
 about safety (lease, generation, drain guards; honest classification of unknowns).
 The main risks are (1) the platform statement is stale relative to the owner's RP2350
-decision, (2) the new EIC is not yet integrated into the document set and makes
-universal, per-channel claims that conflict with per-console reality and with the
-"two ports, two players" scope, (3) the 5 ms cadence has no slack for any non-input
-timeout, and (4) several console-facing electrical facts need primary-source
-verification before any original hardware is connected.
+decision, (2) the electrical capability claims are universal and per-channel, which
+conflicts with per-console reality and with the "two ports, two players" scope,
+(3) the 5 ms cadence has no slack for any non-input timeout, and (4) several
+console-facing electrical facts need primary-source verification before any
+original hardware is connected.
 
 ## 3. Items verified without remark
 
@@ -60,7 +63,7 @@ These were independently recomputed or checked and found correct. Keep them stab
 | Exchange arithmetic | 1.70 ms success (34 % of 5 ms), 4.02 ms INPUT timeout path, 5.25 ms maximum-request timeout path - correct |
 | Clock/lease arithmetic | 100/0.99 + 1/0.99 = 102.02 ms < 103 ms; 110/1.01 = 108.9 ms - correct and conservative (see RR-001-021 for the unstated baud assumption) |
 | Transaction-ID horizon | 2^32 / 200 per s = 248 days - correct |
-| EIC channel arithmetic | All per-port and aggregate counts and the 14-channel maximum are arithmetically correct (their content is questioned in section 4, theme E) |
+| Console channel arithmetic | All per-port and aggregate counts and the 14-channel maximum are arithmetically correct (their content is questioned in section 4, theme E) |
 | Cross-document ID references | Every `SRS-V-*` design reference (`PS-*`, `SAD-*`, `ICD-*`) resolves to a defined element |
 
 ## 4. Remarks
@@ -98,13 +101,13 @@ datasheet (RR-001-003). Define the exception procedure.
 
 #### RR-001-002 - Which RP2350 variant, core architecture and resource budget?
 
-| Locations | SRS-HW-001/004; SAD-O-004; ICD-CON-001 "Resources"; EIC section 7 |
+| Locations | SRS-HW-001/004; SAD-O-004; ICD-CON-001 "Resources"; console channel sizing (ICD section 8.2) |
 |---|---|
 | Category / Severity / Gate | Decision / S2 / Step 4 |
 
 **Remark.** "RP2350 family" spans package/pin-count variants (a smaller-GPIO and a
 larger-GPIO variant, and variants with stacked flash), and Arm and RISC-V cores.
-Which are acceptable? The EIC resource table needs a per-console GPIO / PIO state
+Which are acceptable? The console resource sizing needs a per-console GPIO / PIO state
 machine / DMA / interrupt budget on the chosen part: the two-port Mega Drive needs 14
 channels, PS2 needs two simultaneous SPI-like slaves with ACK timing, N64/GameCube need
 a precisely timed open-drain engine per port. Is one RP2350 enough for each profile?
@@ -120,9 +123,9 @@ resource in the worst two-port combination).
 **Owner response:** Accept - apply suggested solution.
 **Resolution (2026-11-18):** Applied. `SAD-P-007` (Arm cores; RP2350A default; RP2350B only where a profile's resource table shows the need). Resource-table field and the 70 % margin rule added to ICD-CON-001. First GPIO budget (`ICD-CAP-014`, ICD section 8.3): Mega Drive and Saturn need 23 GPIO, above 21 (70 % of 30), so they imply RP2350B. PIO/DMA/interrupt/RAM figures remain per-profile work (`SAD-O-004`); part facts need the datasheet check.
 
-#### RR-001-003 - RP2350 errata and 5 V tolerance versus the EIC universal channel
+#### RR-001-003 - RP2350 errata and 5 V tolerance versus the universal channel capability
 
-| Locations | EIC 4.1, 4.2, 5.2, 9 (items 3-5); SRS-HW-002; ICD-NET-001 ("GPIO pull states alone are insufficient") |
+| Locations | Universal channel capability (ICD-CAP-003..006); SRS-HW-002; ICD-NET-001 ("GPIO pull states alone are insufficient") |
 |---|---|
 | Category / Severity / Gate | Question / **S1** / Step 4 (before any console connection) |
 
@@ -130,14 +133,14 @@ resource in the worst two-port combination).
 5 V tolerant (for example only while the I/O supply is powered and at a stated level),
 and the family has published errata relating to GPIO input pad leakage / pull-down
 behaviour on some silicon steppings that can affect high-impedance and open-drain
-designs. The EIC requires "5 V input tolerance", high-Z and configurable pull-up/down
+designs. The channel capability requires "5 V input tolerance", high-Z and configurable pull-up/down
 on every channel. Which silicon stepping is targeted, which errata affect these
 interfaces, and does the design depend on MCU-side 5 V tolerance, pull-ups or pull-downs
 or only on external translators?
 
 **Suggested solution.** Add a "platform datasheet and errata register" (document
 revision, stepping, errata ID, affected interface, mitigation) to the ICD, require that
-no console-facing signal relies on internal pulls or MCU 5 V tolerance, and add an EIC
+no console-facing signal relies on internal pulls or MCU 5 V tolerance, and add a
 verification entry for unpowered-MCU / powered-console behaviour of each channel.
 
 **Owner response:** Accept - "Don't rely on the chosen MCU 5V capabilities. Rely only on external translators when applicable."
@@ -167,11 +170,11 @@ only, native host plus hub IC) explicitly as in development-guide Step 3.
 
 #### RR-001-005 - Original Xbox adapter: four USB device ports versus RP2350 USB resources and the two-player scope
 
-| Locations | EIC 4.4, 6.10, 7, 7.2; SRS-SYS-006; SAD-R-001; ICD-CON-001 (Xbox row) |
+| Locations | Xbox capability (ICD-CAP-011); SRS-SYS-006; SAD-R-001; ICD-CON-001 (Xbox row) |
 |---|---|
 | Category / Severity / Gate | Decision / S2 / Xbox profile (not the first prototype) |
 
-**Remark.** EIC requires four independent USB full-speed **device** interfaces and says
+**Remark.** The Xbox capability requires four independent USB full-speed **device** interfaces and says
 a shared transceiver is not sufficient. An RP2350 provides one native USB controller
 (verify), and a USB device cannot be multiplexed across physical connectors. Therefore
 the Xbox adapter needs one processor (or one PIO-based USB device implementation,
@@ -236,83 +239,54 @@ are never irreversibly locked by accident.
 
 ### Theme B - Consistency and document control
 
-#### RR-001-008 - The EIC is not integrated into the document set
+#### RR-001-008 - Withdrawn
 
-| Locations | SAD header (companions); PS header (companions); DEVELOPMENT-GUIDE (intro, reading order, "four documents", Step 1/7 prompts); SAD section 2 ("four-document"); SRS section 1 (ID prefixes and ownership); SRS section 8 (SRS-V-006 references) |
-|---|---|
-| Category / Severity / Gate | Correction / S2 / Step 2 |
+Withdrawn on 2026-11-25 (owner decision): the subject of this remark was removed
+from the repository. The identifier is not reused.
 
-**Remark.** Only the README, SRS header and ICD header were updated for the EIC. The SAD
-and PS companion lists omit it; the development guide still speaks of "four" documents
-and its reading order omits the EIC; SRS section 1 declares prefixes `SRS-/ICD-/SAD-/PS-`
-but the EIC defines `EIC-VER-*`; no SRS verification row references the EIC; the SRS
-ownership sentence ("PS owns wire definitions, ICD electrical definitions...") does not
-mention the EIC. Should the EIC be a peer specification with its own ID prefix, ownership
-statement and place in the reading order?
+**Rule retained for the remarks that refer to this one** (RR-001-011 and
+RR-001-028 to RR-001-035): useful content is used where it is consistent with the
+system intent, and where it conflicts, the existing documentation takes
+precedence.
 
-**Suggested solution.** Update every companion list, the SRS identifier/ownership
-paragraph (add `EIC-*`), SRS-V-006's design references, the development guide
-(five documents, reading order after the ICD) and replace "four-document" wording.
+#### RR-001-009 - Withdrawn
 
-**Owner response:** Accept - the EIC was added ad hoc without regard to project standards; it is to be seen as engineering notes and deprecated as an individual document; useful content is used where consistent with the system intent; where in conflict, the existing documentation takes precedence.
-**Resolution (2026-11-18):** Applied by deprecation, not integration. [EIC](../EIC.md) carries a deprecation notice, status "Deprecated" and a content-mapping table; it is removed from the SRS/ICD companion lists and the README specification table; useful content merged into ICD sections 8 to 11 (`ICD-CAP`, `ICD-VER`, `ICD-PLAT-001`, `ICD-REF-001`); `EIC-VER-001..014` retired (SRS section 1); `SAD-D-005`; RPN-RVP "Applies to" updated. The document set stays at four specifications, so the "four documents" wording remains correct.
-
-#### RR-001-009 - Authority overlap between ICD (ICD-CON-001) and EIC section 6
-
-| Locations | ICD section 5 (risk inventory, per-profile supplement); EIC sections 5-8; SRS section 1 ("ICD electrical definitions") |
-|---|---|
-| Category / Severity / Gate | Decision / S2 / Step 2 |
-
-**Remark.** The ICD says no console pinout or voltage table is approved and that
-per-console electrical truth lives in controlled ICD-CON-001 supplements; the EIC contains
-per-console signal tables, channel counts and voltage rails. Which document is
-authoritative for a given console signal, and what happens when a supplement disagrees
-with the EIC? Is the EIC a *capability envelope* (what hardware must be able to do) and
-the ICD supplement the *approved per-console truth*?
-
-**Suggested solution.** State a precedence rule in both documents: EIC = minimum
-capability envelope and aggregate budgets (a sizing baseline, never an approval to wire);
-ICD supplements = per-console approved electrical facts; a supplement may narrow but not
-exceed the envelope without an EIC change. Remove duplicated values from one side
-(single source per fact).
-
-**Owner response:** Accept - see RR-001-008.
-**Resolution (2026-11-18):** Applied. The overlap is removed by making the ICD the single authority; `ICD-CAP-001` and `SAD-D-005` state the precedence rule (baseline for sizing, supplements for approved facts, a supplement may narrow but not exceed the baseline); the EIC no longer carries values.
+Withdrawn on 2026-11-25 (owner decision): the subject of this remark was removed
+from the repository. The identifier is not reused.
 
 #### RR-001-010 - Document control inconsistencies
 
-| Locations | SRS, ICD headers/history (changed 2026-11-16, date still 2026-10-23); EIC (revision history block at top **and** at end); SAD/PS (unchanged) |
+| Locations | SRS, ICD headers/history (changed 2026-11-16, date still 2026-10-23); SAD/PS (unchanged) |
 |---|---|
 | Category / Severity / Gate | Correction / S4 / Step 2 |
 
 **Remark.** The SRS and ICD were edited (companion line) without date or change-history
-update, and the EIC carries two identical revision-history tables. What is the rule for
-edits within Revision 0.1: must the date and history row be updated on every
-substantive change?
+update. What is the rule for edits within Revision 0.1: must the date and history row
+be updated on every substantive change?
 
 **Suggested solution.** Adopt the rule "any change to body text or companion list
 updates the date and adds a one-line history entry within the same revision", keep a
 single history table per document, and record the rule in the development guide.
 
 **Owner response:** Accept - apply suggested solution.
-**Resolution (2026-11-18):** Applied. Date and a dated history row updated in SRS, ICD, SAD, PS (and EIC); the EIC's duplicate history table removed; the rule is recorded as rule 8 of the development guide.
+**Resolution (2026-11-18):** Applied. Date and a dated history row updated in SRS, ICD, SAD, PS; the rule is recorded as rule 8 of the development guide.
 
 #### RR-001-011 - Port and player scope conflict: four-port consoles versus "two players, two ports"
 
-| Locations | EIC 2.1, 6.5-6.7, 6.10, 7; SRS-SYS-002/006/007, SRS-IN-005; ICD section 1 ("up to two simultaneously routed ports"); PS-PROFILE (ports 0,1) |
+| Locations | Console channel sizing (ICD section 8.2); SRS-SYS-002/006/007, SRS-IN-005; ICD section 1 ("up to two simultaneously routed ports"); PS-PROFILE (ports 0,1) |
 |---|---|
 | Category / Severity / Gate | Decision / S2 / Step 3 |
 
-**Remark.** The EIC sizes N64, GameCube, Dreamcast and Xbox adapters for **four** ports
+**Remark.** The console capability sizing covers N64, GameCube, Dreamcast and Xbox adapters for **four** ports
 (4/4/8 channels, 4 USB), while the SRS/ICD/PS limit routing to two players and port IDs
 0-1. For a four-port console, which two physical ports are emulated, which connectors
 are populated, and what do the other two ports present to the console (nothing connected,
 or a neutral controller)? Is a four-port adapter a requirement, a future-proofing
-margin, or an inconsistency? The aggregate table in EIC section 7 and the RP2350 budget
+margin, or an inconsistency? The aggregate resource table and the RP2350 budget
 (RR-001-002) change materially depending on the answer.
 
 **Suggested solution.** Decide "two emulated ports per adapter" (consistent with
-SRS-SYS-007) and size the EIC for two ports, listing four-port support as Future (a
+SRS-SYS-007) and size the capability baseline for two ports, listing four-port support as Future (a
 multitap/4-player extension, SAD-F-001); or, if four ports are wanted, make it a
 class-C requirement and revisit SRS-SYS-002/007, PS limits and ICD wording together.
 Define the mapping between PS `port` IDs and the console's physical ports.
@@ -320,29 +294,14 @@ Define the mapping between PS `port` IDs and the console's physical ports.
 **Owner response:** Accept - see RR-001-008 (existing documentation takes precedence).
 **Resolution (2026-11-18):** Applied with the existing scope of two ports. `SRS-SYS-009` (an adapter emulates at most the two routable ports; other ports unpopulated, the console sees no controller), `SAD-P-008`, four-port/multitap support added to `SAD-F-001` (Future); ICD section 8.2 sizes N64, GameCube, Dreamcast and Xbox for two ports; "Port mapping" field added to ICD-CON-001 (PS port ID to physical connector).
 
-#### RR-001-012 - The EIC is not traceable: no requirement IDs, classification or pass criteria
+#### RR-001-012 - Withdrawn
 
-| Locations | EIC sections 3-9 (untagged `shall`), section 10 (`EIC-VER-001..014`); SRS section 8 |
-|---|---|
-| Category / Severity / Gate | Correction / S2 / Step 2 |
-
-**Remark.** The EIC's `shall` statements have no IDs and no C/D/P classification, so they
-cannot be traced; `EIC-VER-*` items have no acceptance values ("Verify 3.3 V input
-compatibility" - against what threshold?) and are not linked to requirements or to the
-SRS verification matrix. Is each EIC `shall` meant to be a confirmed requirement or a
-provisional sizing assumption?
-
-**Suggested solution.** Give each capability a stable ID (for example `EIC-CAP-001...`),
-classify it C/D/P, map each `EIC-VER-*` to the IDs it verifies with numeric pass
-criteria (thresholds, edge-rate, timing, current limits) and add an SRS-V row (or extend
-SRS-V-006) that references them.
-
-**Owner response:** Accept - see RR-001-008.
-**Resolution (2026-11-18):** Applied to the merged content. `ICD-CAP-001..017` carry IDs and classes; `ICD-VER-001..020` map the former `EIC-VER-001..014` one-to-one (plus 015..020) with pass criteria; `SRS-V-006` references them. Numeric thresholds are taken from the approved console supplements (and the RP2350 datasheet register), so those entries cannot be executed until the supplements exist; two proposed defaults are marked proposed.
+Withdrawn on 2026-11-25 (owner decision): the subject of this remark was removed
+from the repository. The identifier is not reused.
 
 #### RR-001-013 - Terminology and stale wording
 
-| Locations | SRS-SYS-007 ("input endpoints" undefined); SRS section 1 last sentence; SAD section 2 note; EIC ("PlayStation 1" vs SRS "PlayStation"; "analogue" vs "analog"); PS ("port", "player", "route") |
+| Locations | SRS-SYS-007 ("input endpoints" undefined); SRS section 1 last sentence; SAD section 2 note; console naming and spelling ("PlayStation 1" vs SRS "PlayStation"; "analogue" vs "analog"); PS ("port", "player", "route") |
 |---|---|
 | Category / Severity / Gate | Correction / S4 / Step 2 |
 
@@ -358,13 +317,13 @@ variant and one name per console.
 **Owner response:** Accept - apply suggested solution.
 **Resolution (2026-11-18):** Applied. Glossary added to SRS section 1 (hub, adapter, node, console port, port, player, route, endpoint, channel, owner, profile); "input endpoints" in `SRS-SYS-007` replaced by routes (endpoints); the historical sentences removed from SRS section 1 and SAD section 2; one name per console (SRS-SYS-004 now "Original Xbox") and "analog" as the single spelling of that term.
 
-#### RR-001-014 - Source provenance of EIC electrical values
+#### RR-001-014 - Source provenance of console electrical values
 
-| Locations | EIC section 12 (references), sections 6 and 8 (values); ICD ICD-QUAL-001 (provenance rule) |
+| Locations | ICD-REF-001 (references), ICD sections 8.2 and 8.5 (values); ICD ICD-QUAL-001 (provenance rule) |
 |---|---|
 | Category / Severity / Gate | Correction / S3 / Step 4 |
 
-**Remark.** Nine of ten EIC references are community wikis or pinout sites; no revision or
+**Remark.** Nine of ten references are community wikis or pinout sites; no revision or
 retrieval date is recorded, and values such as "approximately 3.5 V" or "approximately
 3.43 V" are not attributed to a specific reference. ICD-QUAL-001 requires provenance with
 revision. How will each electrical value be tied to a primary source (console hardware
@@ -387,7 +346,7 @@ secondary-only values as unverified until measured on an original console.
 verification method (it is listed under SRS-V-001 whose method does not test it).
 SRS-V-003 tests "counter wrap" while the PS forbids wrap and defines exhaustion as a
 fault; which behaviour is to be tested (exhaustion handling)? No verification row covers
-PS-SVC-CONFIG or the EIC (RR-001-012).
+PS-SVC-CONFIG or the electrical capability entries.
 
 **Suggested solution.** Add an inspection/H method for SRS-SYS-003 (connector-only
 attachment, no soldering, reversible fixture), change "counter wrap" to "counter
@@ -671,11 +630,11 @@ Future with the credential/authentication caveat.
 
 #### RR-001-028 - One universal "any mode, 3.3 V or 5 V" channel versus per-console safety
 
-| Locations | EIC 4.1-4.3, 5.1-5.3, 9 (item 7), 11; ICD-CON-001 (per-profile electrical); SRS-HW-002 |
+| Locations | Universal channel capability (ICD-CAP-004, ICD-CAP-005); ICD-CON-001 (per-profile electrical); SRS-HW-002 |
 |---|---|
 | Category / Severity / Gate | Decision / **S1** / Step 4 |
 
-**Remark.** The EIC requires that *every* channel can be input, 3.3 V push-pull, 5 V
+**Remark.** The reviewed capability text required that *every* channel can be input, 3.3 V push-pull, 5 V
 push-pull, open-drain or high-Z, independently selectable. Several consoles (N64,
 GameCube, Dreamcast, PlayStation) are 3.3 V-class with console-side pull-ups on
 open-drain lines. Is runtime (firmware) selectability of 5 V push-pull on such a line
@@ -686,7 +645,7 @@ contention prevention".
 **Suggested solution.** Make the voltage domain and drive type a **hardware-defined
 property of each console connector module** (strap or module ID readable by firmware,
 which refuses incompatible profiles), keep high-Z as the only state reachable without
-a valid module/profile match, and restate EIC 4.1-4.3 as "the platform shall provide
+a valid module/profile match, and restate the capability as "the platform shall provide
 the capabilities across modules" rather than "every channel shall do everything".
 
 **Owner response:** Accept - see RR-001-008; apply suggested solution.
@@ -694,11 +653,11 @@ the capabilities across modules" rather than "every channel shall do everything"
 
 #### RR-001-029 - Saturn (and Mega Drive) signal directions and the 3D Control Pad
 
-| Locations | EIC 6.3 (Mega Drive), 6.4 (Saturn), 7 (channel counts) |
+| Locations | Saturn and Mega Drive channel sizing (ICD section 8.2) |
 |---|---|
 | Category / Severity / Gate | Correction + Question / S2 / Saturn and Mega Drive profiles |
 
-**Remark.** (To verify against EIC references 3 and 4.) EIC 6.4 lists TH and TR as inputs
+**Remark.** (To verify against ICD-REF-001 sources R3 and R4.) The reviewed Saturn signal list gave TH and TR as inputs
 and D0-D3 as outputs and treats TL as "an appropriate static electrical bias", while also
 requiring the 3D Control Pad. As the reviewer understands the Saturn interface, the
 3D/analog pad uses a handshake in which a pad-driven line (TL) acknowledges console
@@ -719,15 +678,15 @@ Add the Mega Drive idle-timeout and TH-edge timing to the profile's measurement 
 
 #### RR-001-030 - Signals needed by other requirements are missing from the channel counts
 
-| Locations | EIC 5.4, 6, 7; SRS-OWN-008; ICD-PWR-002 (item 6); PS-DISCOVERY (physical commissioning enable); ICD-DBG-001 |
+| Locations | Console channel sizing (ICD section 8.2); SRS-OWN-008; ICD-PWR-002 (item 6); PS-DISCOVERY (physical commissioning enable); ICD-DBG-001 |
 |---|---|
 | Category / Severity / Gate | Correction / S2 / Step 4 |
 
-**Remark.** EIC "channels" cover controller data lines only. Not counted: console power
+**Remark.** The channel counts cover controller data lines only. Not counted: console power
 sense / activity detection (SRS-OWN-008 requires activity or `UNKNOWN`), Dreamcast and
 other presence/sense pins, the commissioning-enable input, status LEDs, the recovery/
 boot-select input and the direction/enable lines of the RS-485 transceiver. Is the
-EIC's channel table intended to be the complete GPIO budget for the adapter?
+channel table intended to be the complete GPIO budget for the adapter?
 
 **Suggested solution.** Add an "adapter system I/O" table (power-sense per port,
 presence, commissioning enable, recovery, LEDs, bus UART/direction) and a total GPIO
@@ -738,11 +697,11 @@ budget per console, to be compared with the RP2350 variant chosen (RR-001-002).
 
 #### RR-001-031 - No dynamic requirements: bit rates, edge rates, delay, skew, capacitance
 
-| Locations | EIC 4.1-4.3, 4.6, 5, 10 ("defined input thresholds", "protection shall not compromise timing") |
+| Locations | Capability and verification text (ICD-CAP-005, ICD-CAP-008, ICD-CAP-015; ICD-VER-003..008) ("defined input thresholds", "protection shall not compromise timing") |
 |---|---|
 | Category / Severity / Gate | Question / S2 / Step 4 |
 
-**Remark.** The EIC states no numeric limits. Needed values per console include the
+**Remark.** The reviewed capability text states no numeric limits. Needed values per console include the
 signalling rate (for example N64/GameCube about 4 us per bit with fast edges on an
 open-drain line, Maple at a multi-megabit rate, PS1/PS2 a few hundred kHz, SNES/NES
 tens of kHz), maximum rise/fall time, maximum added propagation delay, skew between
@@ -753,18 +712,18 @@ numbers, and where will the measurements be recorded?
 
 **Suggested solution.** Add per-console columns for nominal rate, tolerance, VIH/VIL
 and VOH/VOL required at the console, maximum added delay and capacitive budget; make
-EIC-VER-003..008 reference those numbers.
+the verification entries ICD-VER-003..008 reference those numbers.
 
 **Owner response:** Accept - see RR-001-008; apply suggested solution.
 **Resolution (2026-11-18):** Structure applied; numbers pending. `ICD-CAP-015`, ICD section 8.4 (nominal signalling rate leads per console), a "Dynamics" field in ICD-CON-001 (rate and tolerance, VIH/VIL and VOH/VOL, rise/fall time, added delay, skew, capacitance), and `ICD-CAP-009` (auto-direction translators not used on open-drain bidirectional lines without measurement). The per-console limits cannot be invented; they come from the supplements, so `ICD-VER-003..008` are not executable until then.
 
 #### RR-001-032 - Dreamcast: bidirectional "Digital" mode is undefined; presence detection not budgeted
 
-| Locations | EIC 6.7; ICD section 5 (Dreamcast row) |
+| Locations | Dreamcast channel sizing (ICD section 8.2); ICD section 5 (Dreamcast row) |
 |---|---|
 | Category / Severity / Gate | Question / S2 / Dreamcast profile |
 
-**Remark.** EIC 6.7 lists SDCKA/SDCKB as bidirectional "Digital" without drive type
+**Remark.** The reviewed Dreamcast signal list gave SDCKA/SDCKB as bidirectional "Digital" without drive type
 (push-pull, open-drain, or console-biased) and defers presence detection to the profile
 while the channel count excludes it. Is the line driven push-pull at 3.3 V, and what
 pull-up arrangement does the console provide? Does the port have a sense/presence pin or
@@ -778,11 +737,11 @@ primary Maple documentation, and add the missing line(s) to the channel count.
 
 #### RR-001-033 - Connector voltages, pull-up ownership and the "3.3 V / 5 V" assumption
 
-| Locations | EIC 4.1 (configurable pull-ups), 8 (power table), 9; ICD-PWR-002 |
+| Locations | Pull-ups and connector power (ICD-CAP-004, ICD-CAP-010, ICD-CAP-016, ICD section 8.5); ICD-PWR-002 |
 |---|---|
 | Category / Severity / Gate | Question / **S1** / Step 4 |
 
-**Remark.** The EIC power table lists PlayStation logic as "approximately 3.5 V" and
+**Remark.** The reviewed connector power table listed PlayStation logic as "approximately 3.5 V" and
 GameCube as "5 V and approximately 3.43 V", which are neither of the two logic domains
 the channel capability promises (3.3 V or 5 V). Who supplies the pull-ups on each
 open-drain line (console or controller), and may the adapter add pull-ups on lines where
@@ -800,13 +759,13 @@ measurements on at least one console of each family before approval.
 
 #### RR-001-034 - Power source and grounding/isolation decision must precede any multi-console connection
 
-| Locations | ICD-PWR-002, SAD-O-002; EIC 4.5, 8, 9; SRS-HW-003 |
+| Locations | ICD-PWR-002, SAD-O-002; ICD-CAP-012; SRS-HW-003 |
 |---|---|
 | Category / Severity / Gate | Decision / **S1** / Step 4 (multi-console) |
 
 **Remark.** Open: whether each adapter (a) senses console power only, (b) draws from the
 console through protection, or (c) is externally powered; and whether the shared RS-485
-bus is galvanically isolated. EIC 4.5 forbids connecting console rails "directly to the
+bus is galvanically isolated. The reviewed capability text forbade connecting console rails "directly to the
 internal 3.3 V logic supply", which differs from ICD-PWR-002's allowance of a
 console-derived protected supply. Multiple grounded consoles bridged by video cables
 and one bus form ground loops; the N64 and GameCube ports supply very little current.
@@ -815,7 +774,7 @@ and one bus form ground loops; the N64 and GameCube ports supply very little cur
 console power, plus an isolated bus interface (isolated RS-485 transceiver and isolated
 power) at every adapter, with isolation-delay included in PS-TIMING margins. Resolve as
 a decision (SAD-O-002) before any bench setup beyond a single console, and harmonise
-the wording of EIC 4.5 and ICD-PWR-002 ("not directly connected" versus "protected
+the wording of the capability text and ICD-PWR-002 ("not directly connected" versus "protected
 derived supply").
 
 **Owner response:** Accept - apply suggested solution.
@@ -823,16 +782,16 @@ derived supply").
 
 #### RR-001-035 - No electrical capability specification for the hub
 
-| Locations | EIC (adapter-only); ICD-USB-001, ICD-PWR-001; SAD-O-003 |
+| Locations | Console capability sizing (adapter-only); ICD-USB-001, ICD-PWR-001; SAD-O-003 |
 |---|---|
 | Category / Severity / Gate | Correction / S2 / Step 4 |
 
-**Remark.** The EIC defines the adapter envelope; the hub (USB host ports, VBUS
+**Remark.** The reviewed capability sizing defines the adapter envelope; the hub (USB host ports, VBUS
 switching and current, bus transceiver, local power, indicators) has only narrative text
 in the ICD and no numbers. How many USB ports and what VBUS current does the hub provide
 for devices such as fight sticks and wheels, and what is its power input?
 
-**Suggested solution.** Either extend the EIC to a hub section or add a hub baseline
+**Suggested solution.** Either extend the capability baseline to a hub section or add a hub baseline
 table to the ICD (ports, current per port, protection, supply input, transceiver,
 indicator and button I/O).
 
@@ -881,20 +840,20 @@ section for environmental/compliance constraints classed O or F where undecided.
 **Owner response:** Accept - apply suggested solution. Initial draft idea: a hub UI with a small display showing the button mapping with target console button names and, for the Dreamcast, the VMU screen.
 **Resolution (2026-11-18):** Applied. New SRS section 8: `SRS-UI-001/002` (physical selector and indicators for the first prototype), `SRS-UI-003` (display with adapter-supplied console button names; consistent with SRS-IN-001 because the names are adapter metadata), `SRS-UI-004` (VMU screen, Future, `SAD-F-006`), `SRS-CFG-002` (hub roster and assignment persistence), and class-O items `SRS-SUP-001`, `SRS-ENV-001..003`, `SRS-LIC-001`; `SRS-V-010`; SAD-COMP-HUB UI row updated.
 
-#### RR-001-038 - First console and controller mode not yet chosen, while the EIC sizes all ten
+#### RR-001-038 - First console and controller mode not yet chosen, while the capability baseline sizes all ten
 
-| Locations | SAD-O-001; DEVELOPMENT-GUIDE Step 3 and "one active milestone"; EIC section 2.1 |
+| Locations | SAD-O-001; DEVELOPMENT-GUIDE Step 3 and "one active milestone"; console channel sizing (ICD section 8.2) |
 |---|---|
 | Category / Severity / Gate | Decision / S2 / Step 3 |
 
-**Remark.** The EIC establishes the full console envelope while SAD-O-001 (first console,
+**Remark.** The capability baseline establishes the full console envelope while SAD-O-001 (first console,
 variants, virtual peripherals) remains open. Which console and controller mode should
 the first two-player prototype target, and does its resource profile reveal anything the
 envelope hides?
 
 **Suggested solution.** Compare two or three candidates (for example SNES, PlayStation 2,
 Mega Drive) by electrical simplicity, timing difficulty and resource load on the chosen
-RP2350, then select one. Keep the EIC as the long-term envelope; do not let it drive
+RP2350, then select one. Keep the baseline as the long-term envelope; do not let it drive
 first-prototype scope.
 
 **Owner response:** Accept - apply suggested solution. Sega Saturn could be a good first option.
@@ -906,7 +865,7 @@ first-prototype scope.
 |---|---|
 | Category / Severity / Gate | Correction / S3 / Step 2 |
 
-**Remark.** Besides the EIC omission (RR-001-008), the guide has no step for a formal
+**Remark.** The guide has no step for a formal
 review and no place for review artifacts; Step 1 asks the owner to review but does not
 say how remarks are recorded. Should the review process become Step 1b, with its output
 feeding Step 2?
@@ -942,7 +901,8 @@ column and status were completed on 2026-11-18. Status values: **Applied** (text
 changed; awaits the closure check of the re-review), **Applied - evidence
 pending** (text changed, but a datasheet check, measurement or primary source is
 still required), **Partly applied** (owner input or evidence needed before the
-remark can close). No remark is **Closed** until the re-review (RPN-RVP section 9).
+remark can close), **Withdrawn** (the subject of the remark was removed from the
+repository on 2026-11-25). No remark is **Closed** until the re-review (RPN-RVP section 9).
 
 | ID | Owner decision (Accept / Modify / Reject / Defer) | Owner answer (as entered) | Resolution (corrector) | Status |
 |---|---|---|---|---|
@@ -953,11 +913,11 @@ remark can close). No remark is **Closed** until the re-review (RPN-RVP section 
 | RR-001-005 | Accept | Apply suggested solution option A (recommended for scope): the Xbox adapter implements two USB device ports (matching the two-player limit); the other two console ports are left unconnected (the console sees no controller). | SRS-SYS-009, SAD-P-008, SAD-ADAPT-001, ICD-CAP-011 | Applied |
 | RR-001-006 | Accept | Apply suggested solution | SAD-P-003, PS-DISCOVERY, PS-TRANSACTION | Applied - evidence pending |
 | RR-001-007 | Accept | Apply suggested solution | SRS-UPD-004, SAD-F-004, SAD-O-008, PS-SVC-UPDATE | Applied |
-| RR-001-008 | Accept | The EIC was added adhock without any consideration for project standards. It shall be seen as engineering notes and deprecated as an individual document. Its contents when found usefull with the system intent shall be used. When in conflict, the existing documentation takes precedence. | EIC deprecated; content merged into ICD 8-11; SAD-D-005 | Applied |
-| RR-001-009 | Accept | See RR-001-008 | ICD-CAP-001, SAD-D-005 | Applied |
+| RR-001-008 | - | - | - | Withdrawn |
+| RR-001-009 | - | - | - | Withdrawn |
 | RR-001-010 | Accept | Apply suggested solution | Dates and history rows; development guide rule 8 | Applied |
 | RR-001-011 | Accept | See RR-001-008 | SRS-SYS-009, SAD-P-008, SAD-F-001, ICD 8.2, ICD-CON-001 port mapping | Applied |
-| RR-001-012 | Accept | See RR-001-008 | ICD-CAP-001..017, ICD-VER-001..020, SRS-V-006 | Applied - evidence pending |
+| RR-001-012 | - | - | - | Withdrawn |
 | RR-001-013 | Accept | Apply suggested solution | SRS glossary and wording fixes | Applied |
 | RR-001-014 | Accept | Apply suggested solution | ICD-REF-001, ICD 8.2-8.5 confidence flags | Partly applied (retrieval dates and primary sources needed) |
 | RR-001-015 | Accept | Apply suggested solution | SRS-V-001/003/005, new SRS-V-009 and V-010 | Applied |

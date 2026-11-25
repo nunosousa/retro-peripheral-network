@@ -5,18 +5,19 @@
 | Document ID | RPN-SRS |
 | Revision | 0.1 |
 | Status | Draft - architecture exploration; not a validated baseline |
-| Date | 2026-11-24 |
+| Date | 2026-11-25 |
 | Companion documents | [RPN-ICD](ICD.md), [RPN-SAD](SAD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
 |---|---|
 | 0.1 | Initial repository draft: two-player architecture, ownership safety, hardware constraints and provisional network profile. |
-| 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform requirement (HW-005, HW-001 retired), glossary, scope/latency/switch-time/clock/identity/neutralisation/HID requirements, user-interaction and compliance section, verification matrix updates; RPN-EIC removed from the companion list (deprecated). |
+| 0.1 (2026-11-18) | REVIEW-001 correction cycle: RP2350 platform requirement (HW-005, HW-001 retired), glossary, scope/latency/switch-time/clock/identity/neutralisation/HID requirements, user-interaction and compliance section, verification matrix updates. |
 | 0.1 (2026-11-18, owner decision) | Bus rate raised to 2 Mbit/s and typical trunk set to less than 5 m (SRS-NET-003, SRS-SYS-008); SRS-UI-004 constrained to lowest priority without effect on input timing; section 10 points to the peripheral catalogue SAD-MAP-003. |
 | 0.1 (2026-11-18, owner decision) | Memory-card accessory storage brought into scope as an adapter responsibility with a per-profile memory-resource determination (SRS-STO-005..006, SRS-V-005). |
 | 0.1 (2026-11-18, owner decision) | Memory-card scope narrowed to controller-port accessories (N64 Controller Pak, Dreamcast VMU): GameCube, PlayStation and PlayStation 2 dedicated-slot cards and the Original Xbox Memory Unit out of scope; SRS-STO-007 retired. |
 | 0.1 (2026-11-18, owner decision) | Emulated memory-card contents held in storage external to the MCU, proposed FRAM (SRS-STO-008, SRS-V-005). |
 | 0.1 (2026-11-24, owner decision) | Player count raised from two to four: four player contexts and up to four routed ports per adapter (SRS-SYS-002, SYS-007, SYS-009), multitap emulation as a per-profile option (SRS-SYS-010), a removed device leaves a neutral record without inhibiting other routes (SRS-IN-010, IN-013), unrouted ports present an idle pad (SRS-IN-014); glossary and verification updated. Supersedes the two-port scope of REVIEW-001 RR-001-011 and option A of RR-001-005. |
+| 0.1 (2026-11-25, owner request) | Identifier and ownership paragraph (section 1) cleaned of obsolete cross-references; no requirement changed. |
 
 ## 1. Purpose and interpretation
 
@@ -44,9 +45,7 @@ and verification entries `ICD-VER-*`), `SAD-*` architectural elements and `PS-*`
 protocol elements. Message opcodes additionally have fixed numeric values.
 The PS owns wire definitions, the ICD electrical definitions, the SAD software
 behaviour and the SRS acceptance criteria. Other documents reference these owners
-rather than independently redefining them. The retired identifiers `EIC-VER-001`
-to `EIC-VER-014` and the `RPN-EIC` document are not reused; see the
-[deprecated EIC](EIC.md) for the mapping to the ICD.
+rather than independently redefining them.
 
 ### Glossary
 

@@ -5,8 +5,8 @@
 | Document ID | RPN-RVP |
 | Revision | 0.1 |
 | Status | Working process document - not an engineering specification |
-| Date | 2026-11-18 |
-| Applies to | [SRS](SRS.md), [ICD](ICD.md), [SAD](SAD.md), [PS](PS.md), [development guide](DEVELOPMENT-GUIDE.md) and [README](../README.md) (the [EIC](EIC.md) was deprecated on 2026-11-18 and is no longer reviewed as a specification) |
+| Date | 2026-11-25 |
+| Applies to | [SRS](SRS.md), [ICD](ICD.md), [SAD](SAD.md), [PS](PS.md), [development guide](DEVELOPMENT-GUIDE.md) and [README](../README.md) |
 | First applied in | [REVIEW-001](reviews/REVIEW-001.md) |
 
 This guide makes a system-requirements review repeatable. It does not change any

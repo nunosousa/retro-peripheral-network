@@ -5,7 +5,7 @@
 | Document ID | RPN-SAD |
 | Revision | 0.1 |
 | Status | Draft - architecture exploration |
-| Date | 2026-11-24 |
+| Date | 2026-11-25 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-ICD](ICD.md), [RPN-PS](PS.md) |
 
 | Revision | Change history |
@@ -19,6 +19,7 @@
 | 0.1 (2026-11-18, owner decision) | Emulated memory-card contents in external FRAM (SAD-P-012 rewritten, SAD-O-005, SAD-PERSIST-001 text). |
 | 0.1 (2026-11-18, owner decision) | Memory-card scope narrowed to controller-port accessories (SAD-D-009, SAD-P-012); dedicated-slot cards and the Xbox Memory Unit out of scope; SAD-O-012, SAD-O-013 and SAD-F-014 retired; SAD-MAP-003 row replaced. |
 | 0.1 (2026-11-24, owner decision) | Player count raised from two to four: SAD-D-002 revised; SAD-D-010 (neutral record for a removed device) and SAD-D-011 (idle pad on unrouted ports) added; SAD-P-005, P-007, P-008 (Original Xbox now four USB device ports), P-009, P-012 and O-009 revised; SAD-P-013 (multitaps inside the adapter), SAD-O-014 (late join) and SAD-O-015 (tap selection) added; SAD-F-001 narrowed to more than four players; hub states, removal handling, SAD-ADAPT-001 and the multitap row of SAD-MAP-003 updated. Supersedes option A of REVIEW-001 RR-001-005. |
+| 0.1 (2026-11-25, owner request) | Document-authority entry SAD-D-005 reworded to drop an obsolete cross-reference; no requirement changed. |
 
 ## 1. Architecture intent
 
@@ -64,7 +65,7 @@ design. Numeric protocol choices remain provisional as a group.
 | SAD-D-002 | C | Four independent players (owner decision 2026-11-24, `SRS-SYS-002`); multiple powered consoles; one selected console owner | Ownership and multi-port tests |
 | SAD-D-003 | D | Console timing and accessory I/O use local state, not bus round trips | Per-console timing analysis |
 | SAD-D-004 | C | The hub and every adapter processor are members of the RP2350 family (SRS-HW-005). An exception requires documented evidence that the family cannot meet a named requirement, owner approval and a register entry naming the adapter or profile, scope and evidence | Per-profile resource table; exception entries |
-| SAD-D-005 | D | Document authority: the ICD is the single electrical authority. The former RPN-EIC is deprecated engineering notes whose useful content now lives in the ICD; where documents conflict the established SRS/ICD/SAD/PS text takes precedence. ICD-CAP is a sizing baseline, never an approval to wire; ICD-CON-001 supplements hold approved per-console facts and may narrow but not exceed the baseline without an ICD change | ICD section 8; EIC deprecation notice |
+| SAD-D-005 | D | Document authority: the ICD is the single electrical authority. ICD-CAP is a sizing baseline, never an approval to wire; ICD-CON-001 supplements hold approved per-console facts and may narrow but not exceed the baseline without an ICD change | ICD section 8 |
 | SAD-D-006 | D | No console-facing signal relies on MCU 5 V tolerance or internal pulls; voltage domain and drive type are fixed by each console connector module, identified to firmware, and firmware refuses a mismatching profile (SRS-HW-006, ICD-CAP-003/004) | ICD-VER-001..006, ICD-VER-015 |
 | SAD-D-007 | D | Every profile declares a default idle peripheral identity and whether live identity change is allowed; the route selects mapping, not identity (SRS-IN-011) | ICD-CON-001 supplement review |
 | SAD-D-008 | D | Every profile declares `neutralisation_bound_us` (CAPS kind 4); hub drain and uncertain-transfer guards derive from the maximum over enrolled adapters; a profile that cannot meet the 1 ms global bound is not approved with the provisional timing (SRS-OWN-013) | ICD-VER-016, PS-TIMING |

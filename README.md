@@ -46,6 +46,3 @@ These documents are not engineering specifications.
 | [Development process guide](docs/DEVELOPMENT-GUIDE.md) | - | The path from reviewing the drafts to a measured two-player prototype and later expansion |
 | [Specification review process](docs/REVIEW-PROCESS.md) | RPN-RVP | Repeatable review method, roles and correction cycle |
 | [Review record REVIEW-001](docs/reviews/REVIEW-001.md) | REVIEW-001 | Latest review: remarks, owner dispositions and resolutions |
-
-The former [Electrical Interface Capability Specification](docs/EIC.md) is
-deprecated engineering notes; its useful content now lives in the ICD.
