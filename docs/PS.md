@@ -5,7 +5,7 @@
 | Document ID | RPN-PS |
 | Revision | 0.1 |
 | Status | Draft - provisional profile, not interoperability validated |
-| Date | 2026-11-24 |
+| Date | 2026-11-25 |
 | Companion documents | [RPN-SRS](SRS.md), [RPN-ICD](ICD.md), [RPN-SAD](SAD.md) |
 
 | Revision | Change history |
@@ -16,6 +16,7 @@
 | 0.1 (2026-11-18, owner decision) | Storage note updated for an external FRAM backend (bank flip commit; no wire change). |
 | 0.1 (2026-11-18, owner decision) | Memory-card accessories described as Storage resources with transfer times (PS-SVC-STORAGE); no wire change. |
 | 0.1 (2026-11-24, owner decision) | Four players: players 0..3, ports 0..3 and 1..4 routes per owner; INPUT size, cycle budget, latency, feedback slots and display budget recomputed for four records; neutral record for an absent device (`PS-DATA-INPUT`) and idle identity on unrouted ports (`PS-OWNERSHIP`); no change to message layouts. |
+| 0.1 (2026-11-25, owner request) | Informative figures 1-17 added (bus roles, session overview, frame layout, receive path, retry, exchange and cycle timing, lease and guard clocks, commissioning, adapter states, INPUT layout, neutral record, ownership switch, feedback, storage write); no change to any requirement, message layout or number. |
 
 ## 1. PS-PROFILE: scope and conventions
 
@@ -55,6 +56,57 @@ The hub is the sole request initiator. Adapters respond only to valid addressed
 requests or commissioning requests matching their exact UID. There is no
 unsolicited event frame, general broadcast input or broadcast arm/reset.
 
+Figures in this document are informative. They illustrate the text and tables,
+which prevail wherever a figure differs; such a difference is a defect in the
+figure, and a change to a number or rule includes the figures that show it.
+Sequence figures read downward in time: `---->` is a request and `<----` its
+response, `--X` or `X--` a frame lost or discarded on the bus, `[ ... ]` a
+local action or event, `txn` a transaction ID, `g` a route generation and
+`seq` a `sample_sequence`. Identifiers, addresses and counters in the
+examples are illustrative.
+
+```text
+Figure 1 - Bus roles: one master, one exchange at a time (informative)
+
+              RS-485 trunk, half-duplex
+  +---------+
+  |   Hub   |=============+=================+=================+====== ... ========+=====
+  | address |             |                 |                 |                   |
+  |    0    |         Adapter 1         Adapter 2         Adapter 3          Adapter 31
+  +---------+        (address 1)       (address 2)       (address 3)        (address 31)
+                      console A         console B         console C          console ...
+
+  request  : hub to destination 1..31 (one adapter), or 255 (commissioning only)
+  response : from the addressed node (source 254 while unassigned) to destination 0
+  Only the addressed node answers; every other node stays silent.
+  One request is outstanding on the whole bus. Adapters never transmit on their own.
+```
+
+```text
+Figure 2 - One adapter from power-up to release (informative)
+
+  Hub                                          Adapter  state / action
+   |                                              |
+   |   [boot guard: new session, 110 ms silent]   |
+   |-------- HELLO (expected_uid, minors) ------->|
+   |<--- HELLO OK (boot_id, services, ports) -----|     INHIBITED (0)
+   |-------- CAPS (kind, index), repeated ------->|
+   |<------ CAPS OK; NOT_FOUND ends a list -------|
+   |   [console chosen as owner, routes prepared] |
+   |----- ROUTES g (player -> port records) ----->|
+   |<--------------- ROUTES OK g -----------------|     -> CONFIGURED (1)
+   |------------------- ARM g ------------------->|     neutral published, lease starts
+   |<----------------- ARM OK g ------------------|     -> ARMED_NEUTRAL (2)
+   |----- INPUT g (all records), every 5 ms ----->|
+   |<----- INPUT OK (accepted seq per port) ------|     -> LIVE (3); renews the lease
+   |   [FEEDBACK_POLL / 10 ms, STATUS rotation]   |
+   |------------------ REVOKE g ----------------->|
+   |<---------------- REVOKE OK ------------------|     -> INHIBITED (0), routes cleared
+
+  g is the route generation; the number in parentheses is the STATUS value of the state
+  (Figure 11). A first install starts with DISCOVER_UID and ASSIGN_UID (Figure 10).
+```
+
 ## 2. PS-FRAME: encoding and integrity
 
 On the UART (`ICD-NET-001`), transmit:
@@ -84,6 +136,35 @@ gives the distance to the next code, replacing intervening zero bytes; code
 | 22 | payload_length | payload | Opcode-defined |
 | 22 + payload_length | 4 | crc32c | Little-endian checksum |
 
+```text
+Figure 3 - Frame layout and encoding (informative)
+
+ Header, 22 bytes; the number above each field is its byte offset (1 byte = 8 columns)
+
+  0       1       2       3       4       5
+  +-------+-------+-------+-------+-------+-------+
+  | major | minor | opcode| flags | source| dest. |
+  +-------+-------+-------+-------+-------+-------+
+  6       7       8                               12
+  +-------+-------+-------------------------------+---------------+
+  | status|  rsvd |         transaction_id        | payload_length|
+  +-------+-------+-------------------------------+---------------+
+  14
+  +---------------------------------------------------------------+
+  |                      session_id (8 bytes)                     |
+  +---------------------------------------------------------------+
+
+ Decoded frame: 26 + n bytes, where n = payload_length (0..192)
+
+  +------------------------+--------------------------+------------------+
+  |    header, 22 bytes    |     payload, n bytes     | CRC-32C, 4 bytes |
+  +------------------------+--------------------------+------------------+
+  |<------- CRC-32C covers header and payload ------->|
+
+ On the wire:  COBS( header || payload || CRC-32C ), then the 0x00 delimiter
+               largest frame: 218 B decoded, 219 B COBS-encoded, 220 B with the delimiter
+```
+
 CRC-32C (Castagnoli): reflected polynomial `0x82F63B78`, initial value
 `0xFFFFFFFF`, reflect input/output as the conventional reflected algorithm,
 final XOR `0xFFFFFFFF`. Calculate over header and payload, not COBS or the CRC
@@ -105,6 +186,33 @@ diagnostic counter increment. This prevents replies to corrupt or misaddressed
 traffic. Valid addressed requests with unsupported opcode/schema/state receive
 an explicit status. Unsupported major versions are discarded with a version
 counter; discovery/HELLO timeouts expose incompatibility to the hub.
+
+```text
+Figure 4 - What an adapter does with a received frame (informative)
+
+  bytes arrive on the UART
+        |
+        v
+  0x00 delimiter seen? --no--> keep collecting; a partial frame older than 3 ms, or longer
+        |                      than 219 encoded bytes, is dropped and counted
+       yes   (a delimiter with nothing before it is ignored)
+        |
+        +--> bad COBS, bad CRC, impossible length ----------+
+        +--> wrong destination, invalid source/direction ---+--> DISCARD: no reply
+        +--> unsupported major version ---------------------+    counter + 1
+        |
+        v
+  valid request addressed to this node
+        |
+        +--> same ID, identical bytes -------------> cached reply, nothing re-executed
+        +--> same ID, other bytes, or lower ID ----> reply CONFLICT
+        +--> unsupported, invalid or not allowed --> reply with an explicit error status
+        +--> otherwise (a higher ID) --------------> execute, reply OK, cache the reply
+
+ A duplicate never repeats a side effect or renews a lease. Session 0 commissioning
+ frames follow PS-DISCOVERY instead. On the hub, a response from an unexpected node or
+ session, or one that does not match the outstanding exchange, is discarded and counted.
+```
 
 ### PS-VECTOR-001: bootstrap codec checks
 
@@ -187,6 +295,30 @@ and return inhibited (keeping a persisted address), so reset is not transparent
 exactly-once delivery. INPUT is the exception to retries: it is never retried,
 because the next cycle carries a newer sample (`PS-TIMING`).
 
+```text
+Figure 5 - A lost request and a lost response look the same to the hub (informative)
+
+ A. The request is lost
+  Hub                                                Adapter
+   |----------- ROUTES txn 21 ----------X               |  the node never saw it
+   |   ... response timeout ...                         |
+   |------------ ROUTES txn 21, same bytes ------------>|  [executes once]
+   |<---------------- ROUTES OK txn 21 -----------------|
+
+ B. The response is lost
+  Hub                                                Adapter
+   |------------------ ROUTES txn 21 ------------------>|  [executes, keeps reply 21]
+   |               X-------- ROUTES OK txn 21 ----------|
+   |   ... response timeout ...                         |
+   |------------ ROUTES txn 21, same bytes ------------>|  [cached: no second effect]
+   |<-------- ROUTES OK txn 21 (cached reply) ----------|
+
+ The hub cannot tell A from B, so a retry repeats the exact bytes and the same
+ transaction ID. After the first attempt and two retries (three attempts) the outcome is
+ indeterminate: the hub does not assume failure; it queries state, revokes or waits out
+ the lease, and never reuses the ID.
+```
+
 Long storage/update work is staged behind an operation token and polled.
 Acceptance is not durable success. Operations shall not block the response
 deadline. Their explicit state, not an arbitrary retransmission, determines
@@ -254,6 +386,25 @@ margin (at least 0.05 ms)`, rounded up to a class. It is not one global value.
 
 A new opcode shall declare its class from its maximum response size.
 
+```text
+Figure 6 - Timing of one exchange, worst case shown (informative; not to scale)
+
+                                a  b  c         d                     e    f
+Hub TX      ===== request ======|
+Adapter TX                            ..........===== response (R) ===|
+Hub waits                       |<----------- response timeout ------------|
+Bus                                                                        |<------> idle
+
+  a  last stop bit of the request, t0
+  b  t0 + 20 us at the latest: the hub has switched its RS-485 driver off
+  c  t0 + 50 us: earliest first start bit of the response; c..d is the allowed window
+  d  t0 + 250 us: latest first start bit; an adapter never starts a late reply
+  e  end of the response; R is its wire time, at most 0.70 ms (short) or 1.10 ms (long)
+  f  timeout = 250 us + R + at least 50 us: 1.0 ms (short), 1.5 ms (long, rounded up)
+  After the response or the timeout the bus idles for at least 50 us; each sender
+  switches its driver off within 20 us of its last stop bit.
+```
+
 ### Cycle budget
 
 Exchange time is `request wire + 0.25 + response wire + 0.05` on success and
@@ -303,6 +454,29 @@ Scheduler rules:
 - Other retries are separate scheduled slots; never queue several retries ahead
   of a newer input deadline.
 
+```text
+Figure 7 - The 5 ms cycle with a four-record INPUT (informative)
+
+ One column = 0.1 ms.   I INPUT   F FEEDBACK_POLL   S STATUS   W largest management chunk
+ Capital letters: exchange succeeds. Lower case: it times out (whole timeout path used).
+ Numbers: the time in ms at which each exchange ends.
+
+ms       0         1         2         3         4         5
+         |---------|---------|---------|---------|---------|
+ (a)     IIIIIIIIIIIIIIFFFFFFFSSSSSSSWWWWWWWWWWWWWWWWWWWWW.|
+                   1.37   2.06   2.76                 4.91
+ (b)     iiiiiiiiiiiiiiiiiiiffffffffffffssssssssssss.......|
+                        1.86        3.07        4.26   slack 0.74 ms
+
+ (a) Every exchange succeeds. The 2.15 ms worst-case path of a WRITE chunk still ends at
+ 4.91 ms, before the next INPUT slot at 5.00 ms, so the chunk is admitted.
+ (b) Every exchange times out. The cycle ends at 4.26 ms; a 2.15 ms WRITE chunk would
+ end at 6.41 ms, after the next INPUT slot, so it waits for a later cycle.
+ Priority inside a cycle: INPUT, then FEEDBACK_POLL and STATUS, then management chunks,
+ then display. Both rows show a cycle that also carries FEEDBACK_POLL (every second
+ cycle by default); a cycle without it is shorter.
+```
+
 INPUT with n records uses `5 + 32n` request payload bytes and `5 + 5n` ACK
 payload bytes, so each further player adds 37 payload bytes and 0.185 ms to a
 successful exchange. The maximum, four players, uses 133 payload bytes: 159 raw
@@ -323,6 +497,23 @@ line rate, dominates this figure. The end-to-end target of
 SRS-PERF-004 still requires measured hub processing and adapter installation, not
 only this serialization calculation.
 
+```text
+Figure 8 - A lost INPUT is replaced by the next one, never retried (informative)
+
+ms          0                   5                   10                  15
+            |-------------------|-------------------|-------------------|
+sample       s  available just after the boundary at 0
+INPUT                           [===]X              [===]
+                                txn 40 carries s    txn 41: the newest sample
+installed                           ^ 6.06 ms if txn 40 arrives
+           one INPUT lost, txn 41 replaces it: 11.06 ms ^
+
+ Four records. A sample waits at most 5 ms for the next boundary and its INPUT then
+ needs at most 1.055 ms (0.805 ms request + 0.25 ms latest response start): 6.06 ms, or
+ 11.06 ms with one INPUT lost. The lost INPUT is not retried: the next cycle sends the
+ newest sample under a new transaction ID.
+```
+
 The 110 ms guard includes clock drift: an adapter's 100 ms timer may take
 `100 / 0.99 = 101.011 ms` real time, plus at most
 `1 / 0.99 = 1.011 ms` neutralisation, satisfying the 103 ms SRS bound. A hub's
@@ -334,6 +525,27 @@ shall conservatively timestamp the response completion, or the INPUT/ARM timeout
 (1.0 ms after the request) for an uncertain renewal. This is the
 `last possible renewal` time used by the SAD transition engine. If the clock
 or neutralisation bounds cannot be proved, the profile must change before use.
+
+```text
+Figure 9 - Why 110 ms is a safe guard after an unacknowledged revoke (informative)
+
+   a                    b          c          d                       e
+   +--------//----------+----------+----------+-----------------------+------>
+   0                   100      101.01     102.02                  108.91      ms
+
+ Time axis, not to scale; the break between a and b hides most of the 100 ms.
+
+  a  t = 0: latest possible acceptance of the old owner's last renewal (hub's timestamp)
+  b  100 ms: nominal lease expiry
+  c  101.01 ms: latest lease expiry, adapter clock 1 % slow (100 / 0.99)
+  d  102.02 ms: the old owner's console shows neutral at the latest, (100 + 1) / 0.99;
+     SRS-OWN-009 allows 103 ms
+  e  108.91 ms: earliest end of the hub's 110 ms guard, hub clock 1 % fast (110 / 1.01)
+
+ Only after point e may the hub arm another owner when the revoke was not acknowledged.
+ Declared neutralisation bounds above 1 ms break the 103 ms bound; the guard itself
+ holds up to about 7.8 ms.
+```
 
 ## 5. PS-MSG and service discovery
 
@@ -428,6 +640,28 @@ Duplicate UIDs or address contention invalidate the installation and require
 physical isolation/reprovisioning. The protocol does not claim reliable
 detection of two perfectly simultaneous identical replies.
 
+```text
+Figure 10 - Commissioning one new adapter (informative)
+
+  Hub                                          Node with UID u
+   |                                                  |  [commissioning enable on, all
+   |                                                  |   other nodes silent]
+   |---- DISCOVER_UID u (dst 255, session 0, c1) ---->|  [no side effect]
+   |<--- DISCOVER_UID OK (src 254: uid, boot_id) -----|
+   |----- ASSIGN_UID u, boot_id, address 5 (c2) ----->|  [current boot_id only]
+   |              X---- ASSIGN_UID OK (src 254) ------|  reply lost; node now at 5
+   |---- ASSIGN_UID, exact retry (same bytes, c2) --->|  [still heard at dst 255]
+   |<-- ASSIGN_UID OK (retained reply, same bytes) ---|
+   |---- HELLO (dst 5, session s, expected_uid u) --->|
+   |<--------------- HELLO OK (src 5) ----------------|  [dst 255 is ignored now]
+
+  c1 and c2 come from the hub's commissioning counter (session 0). The node applies the
+  new address only after its reply has left the UART, keeps the exact request and reply
+  until the first HELLO or the next reset, and persists the address outside any response
+  window. After a lost reply the hub makes at most two exact retries, then tries HELLO
+  at the proposed address and, failing that, DISCOVER again.
+```
+
 ### HELLO, CAPS and STATUS
 
 HELLO request: `expected_uid[16], min_minor:u8, max_minor:u8`.
@@ -492,6 +726,35 @@ request timeouts.
 
 ## 6. PS-OWNERSHIP: routes, arm, snapshots and revoke
 
+The messages of this section move an adapter through the STATUS states as Figure 11
+shows; `SAD-OWN-001` owns the lifecycle policy.
+
+```text
+Figure 11 - Adapter state and the message that changes it (informative)
+
+ The number in parentheses is the STATUS value of the state.
+
+             HELLO+ROUTES                  ARM                     first INPUT
+ +-----------+           +------------+           +---------------+           +------+
+ | INHIBITED |---------->| CONFIGURED |---------->| ARMED_NEUTRAL |---------->| LIVE |
+ |    (0)    |           |    (1)     |           |      (2)      |           | (3)  |
+ +-----------+           +------------+           +---------------+           +------+
+       ^                        |                         |                       |
+       |                        |                         |                       |
+       +------------------------+-------------------------+-----------------------+
+         REVOKE from (1), (2) or (3); lease expiry or a fault from (2) or (3)
+
+  power-up/reset   valid persisted address -> INHIBITED (0); HELLO comes before ROUTES
+                   no valid address       -> UNASSIGNED
+  UNASSIGNED       no STATUS value; --ASSIGN_UID--> INHIBITED (0), or RECOVERY (5)
+  INHIBITED (0)    --MAINTENANCE enter--> MAINTENANCE (4)
+  MAINTENANCE (4)  --MAINTENANCE exit--> INHIBITED (0)
+                   --new-session HELLO, no token WORKING--> INHIBITED (0) or RECOVERY (5)
+  RECOVERY (5)     diagnosis and session negotiation only, never ownership
+  any state        --reset--> the power-up row
+  LIVE             every complete INPUT renews the lease
+```
+
 ### ROUTES
 
 Request:
@@ -548,6 +811,32 @@ The full configured set is required, sorted by ascending port. No delta
 updates. Validity masks shall be subsets of the route source masks.
 Unreported buttons/axes have zero values; nonzero invalid values are BAD_VALUE.
 
+```text
+Figure 12 - INPUT request, record and acknowledgement (informative; four records shown)
+
+ Request payload = 5 + 32 n bytes (n = 1..4, so 37 to 133 bytes)
+ +------------+-------+-------------+-------------+-------------+-------------+
+ | generation | count |   record 0  |   record 1  |   record 2  |   record 3  |
+ |    u32     |   u8  |   32 bytes  |   32 bytes  |   32 bytes  |   32 bytes  |
+ +------------+-------+-------------+-------------+-------------+-------------+
+ One record per configured route, in ascending port order, every time: no delta updates.
+
+ One record, 32 bytes (byte offset above each field; axes[8] = eight i16 values)
+ 0      1        2                 6               10        14           16
+ +------+--------+-----------------+---------------+---------+------------+---------+
+ | port | player | sample_sequence | valid_buttons | buttons | valid_axes | axes[8] |
+ +------+--------+-----------------+---------------+---------+------------+---------+
+
+ Neutral record (device absent): the same layout with valid_buttons, buttons, valid_axes
+ and all eight axes set to 0; port, player and sample_sequence are filled in as usual.
+
+ Acknowledgement payload = 5 + 5 n bytes: one (port, accepted_sequence) pair per record
+ +------------+-------+------+-------------------+------+-------------------+
+ | generation | count | port | accepted_sequence | port | accepted_sequence |
+ |    u32     |   u8  |  u8  |        u32        |  u8  |        u32        |
+ +------------+-------+------+-------------------+------+-------------------+
+```
+
 | Button bit | Generic function |
 |---|---|
 | 0..3 | D-pad up, down, left, right |
@@ -592,6 +881,29 @@ was removed. A replacement that supplies every control in the route's
 any other replacement keeps the record neutral until the routes are replaced
 (release, ROUTES, ARM).
 
+```text
+Figure 13 - One player's device is removed while LIVE (informative)
+
+  Hub                                          Adapter  console: port 0 / port 1
+   |                                              |
+   |---------- INPUT g=7, seq 801 / 801 --------->|     live / live
+   |<----------- INPUT OK (801 / 801) ------------|
+   |   [player 1's device is unplugged]           |
+   |-- INPUT g=7, seq 802 / 802, port 1 neutral ->|     live / neutral
+   |<--- INPUT OK (802 / 802), lease renewed -----|
+   |-- INPUT g=7, seq 803 / 803, port 1 neutral ->|     live / neutral
+   |<----------- INPUT OK (803 / 803) ------------|
+   |   [device plugged in again: fresh sample]    |
+   |---------- INPUT g=7, seq 804 / 804 --------->|     live / live
+   |<----------- INPUT OK (804 / 804) ------------|
+
+ Two of the four records are shown. "seq a / b" are the sample_sequence values of the
+ records for port 0 and port 1; "neutral" means valid masks, buttons and axes are all 0.
+ The generation stays 7 and the lease keeps being renewed: nothing is inhibited,
+ re-armed or re-routed. A replacement device that lacks a control of the route's masks
+ keeps its record neutral until the routes are replaced.
+```
+
 sample_sequence is nonzero and strictly increases per route generation.
 Every periodic snapshot gets a new sequence even if controls are unchanged.
 The first sequence may be 1; no wrap. All records must be newer than their
@@ -621,6 +933,52 @@ a timeout. Status/feedback/diagnostic traffic never extends a lease. Only
 valid new INPUT or the initial ARM extends it. On expiry a new ROUTES/ARM
 is required. A session change cannot bypass a live lease.
 
+```text
+Figure 14 - Ownership switch with an acknowledged revoke (informative)
+
+Old owner                        Hub                        New adapter
+   |                              |                              |
+   |  [hub stops renewals and     |                              |
+   |   cancels queued old INPUT]  |                              |
+   |<-------- REVOKE g=7 ---------|                              |
+   |  [neutral installed, effects |                              |
+   |   stopped, routes cleared]   |                              |
+   |--------- REVOKE OK --------->|                              |
+   |                              | [drain guard max(2 ms, 2xB)] |
+   |                              |--------- ROUTES g=8 -------->|
+   |                              |<------ ROUTES OK g=8 --------|  -> CONFIGURED (1)
+   |                              |---------- ARM g=8 ---------->|
+   |                              |<-------- ARM OK g=8 ---------|  -> ARMED_NEUTRAL (2)
+   |                              |--------- INPUT g=8 --------->|
+   |                              |<--------- INPUT OK ----------|  -> LIVE (3)
+
+ B is the largest neutralisation_bound_us declared by an enrolled adapter. The hub arms
+ the new owner only after the drain guard. SAD-OWN-001 owns the transition policy.
+```
+
+```text
+Figure 15 - Ownership switch without a revoke acknowledgement (informative)
+
+Old owner                        Hub                        New adapter
+   |                              |                              |
+   |  [t0: the hub timestamps its |                              |
+   |   last possible renewal]     |                              |
+   |         X--- REVOKE g=7 -----|                              |
+   |  [no reply: the hub cannot   |                              |
+   |   know what the node did]    |                              |
+   |  [lease expires by itself,   |                              |
+   |   neutral within 1 ms]       |                              |
+   |                              |  [waits until t0 + 110 ms]   |
+   |                              |--------- ROUTES g=8 -------->|
+   |                              |<------ ROUTES OK g=8 --------|  -> CONFIGURED (1)
+   |                              |---------- ARM g=8 ---------->|
+   |                              |<-------- ARM OK g=8 ---------|  -> ARMED_NEUTRAL (2)
+
+ The same wait applies when only the REVOKE reply is lost. Figure 9 shows why 110 ms is
+ enough; the hub starts its guard from the latest possible acceptance of the old owner's
+ last renewal. SAD-OWN-001 owns the transition policy.
+```
+
 ## 7. PS-SVC-FEEDBACK
 
 FEEDBACK_POLL request: `ack_event:u32` (0 means none).
@@ -642,6 +1000,26 @@ until a new session. Ack 0 leaves the head queued; ack matching the head removes
 it; ack equal to the last removed event is idempotent; other acks are BAD_VALUE.
 The response then contains the next event or present=0. Exact request retry
 returns its cached response and does not remove a second event.
+
+```text
+Figure 16 - Feedback events are acknowledged on the next poll (informative)
+
+  Hub                                              Adapter (owner)
+   |                                                      |
+   |                                                      |  [console asks for rumble:
+   |                                                      |   event 7 queued]
+   |------------ FEEDBACK_POLL ack=0 (txn 30) ----------->|
+   |                X--- present=1, event 7 (rumble) -----|  [event 7 stays the head]
+   |----- FEEDBACK_POLL ack=0 (txn 30, exact retry) ----->|  [cached reply: nothing lost]
+   |<---------------- present=1, event 7 -----------------|
+   |   [hub starts the effect for its duration]           |
+   |------------ FEEDBACK_POLL ack=7 (txn 31) ----------->|  [event 7 removed]
+   |<--------- present=1, event 8, or present=0 ----------|
+
+ An event stays at the head of the queue until the hub acknowledges it on a later poll,
+ so a lost reply never loses an event. An exact retry returns its cached reply and
+ removes nothing.
+```
 
 Kind 0: rumble, value0 low-frequency and value1 high-frequency magnitude,
 0..65535. Kind 1: player indicator index in value0 (0 off, 1..4 indicator),
@@ -734,6 +1112,33 @@ replacement is durably installed and satisfies SRS-STO-004. A reset/power loss
 may leave old or new valid media, never an acknowledged partially replaced
 resource. If a backend cannot meet this contract, it shall not advertise
 writable Storage. Network export is never needed for local console I/O.
+
+```text
+Figure 17 - Writing one storage resource in maintenance (informative)
+
+  Hub                                    Adapter (no owner)
+   |------------- MAINTENANCE enter ------------->|  [needs INHIBITED, no dirty data]
+   |<-------------------- OK ---------------------|  -> MAINTENANCE (4)
+   |---- STORAGE OPEN_WRITE (resource, size) ---->|  [size = the full resource]
+   |<-------- OK token=9, next_offset=0 ----------|  token STAGING
+   |---- STORAGE WRITE (token, offset, data) ---->|  [contiguous chunks, <= 183 B]
+   |<-------------- OK next_offset ---------------|  (repeat until the end)
+   |------- STORAGE COMMIT (token, crc32c) ------>|  [accepted: token WORKING]
+   |<-------------------- OK ---------------------|
+   |----------- STORAGE QUERY (token) ----------->|  [polled, never waited on]
+   |<------------- OK state=WORKING --------------|
+   |----------- STORAGE QUERY (token) ----------->|
+   |<--------- OK state=DONE, result 0 -----------|  [durably installed]
+   |----------- STORAGE CLOSE (token) ----------->|  [token released]
+   |<-------------------- OK ---------------------|
+   |-------------- MAINTENANCE exit ------------->|
+   |<-------------------- OK ---------------------|  -> INHIBITED (0), not armed
+
+ CONFIG and UPDATE follow the same shape. Token states: STAGING, then WORKING after
+ COMMIT, then DONE or FAILED; CLOSE is refused with BUSY while WORKING. If a WRITE reply
+ is lost, retry the exact request; if its transaction cannot be retried, ask PROGRESS
+ for next_offset instead of repeating the chunk blindly.
+```
 
 Memory-card accessories (`SRS-STO-005`) are Storage resources: each accessory is
 one resource whose `size` is the console-visible capacity (128 KiB for the
