@@ -71,20 +71,22 @@ I fix all of these in the rework. Only those with a decision reference need an a
 ### A1 - Revision and status label (all four specifications; README)
 Today: Revision 0.1, "Status: Draft - ...". README says "All specifications are Revision 0.1, Draft".
 - [ ] ★ Revision **1.0**, Status **Definitive**, dated the day of the rework.
-- [ ] Other (revision / status wording): ________________
+- [x] Other (revision / status wording): Not ready yet for 0.1. Increment minor revision to the next value. 1.0 will be used when first no more open points are present and a full review was completed without remarks.
 
 ### A2 - Classification column (SRS section 1: C / D / P / O / F / Retired)
 After the rework no row is P, O, F or Retired.
 - [ ] ★ Keep **C** (owner-supplied scope or principle) and **D** (derived engineering constraint) as an origin marker. Each surviving row becomes C if it comes from an owner decision or a value you confirm below, otherwise D.
 - [ ] Drop the Class column everywhere.
+- [x] Other: Replace **C** (owner-supplied scope or principle) with **F** (Functional Requirements: What the system must do—specific actions, tasks, or behaviors it must perform.) and keep **D** (derived engineering constraint) as an origin markers. Each surviving row becomes F if it comes from an owner decision or a value you confirm below, otherwise D.
 
 ### A3 - Change-history tables (SRS 8 rows, ICD 9, SAD 10, PS 7, citing REVIEW-001, owner decisions and drafts)
 - [ ] ★ One baseline row per specification ("1.0 - definitive baseline"); later changes add rows. Draft-era history stays in git.
 - [ ] Keep every existing row.
 - [ ] Remove the tables (git is the history).
+- [x] Other: Keep every existing row. Still in draft. See A1.
 
 ### A4 - SAD section 2 "Initial architecture review" (SAD-R-001..012: "finding or unresolved assumption | resolution in this draft")
-- [ ] ★ Keep as "Design rationale" (concern | design response), reworded without review or draft framing and without entries made obsolete by Part C.
+- [x] ★ Keep as "Design rationale" (concern | design response), reworded without review or draft framing and without entries made obsolete by Part C.
 - [ ] Delete the section.
 
 ### A5 - SAD section 3 register and identifier prefixes (SAD-D decided, SAD-P provisional, SAD-O open, SAD-F future)
