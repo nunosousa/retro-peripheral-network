@@ -148,7 +148,7 @@ Edit the list of virtual peripherals the adapters must present. ★ = today's SA
 
 | Console | Virtual peripherals in scope (★ as listed) | Your changes |
 |---|---|---|
-| NES | standard pad | |
+| NES | standard pad | Add NES Max Controller |
 | SNES | standard pad | |
 | Mega Drive | 3-button and 6-button pads | |
 | Saturn | digital pad; 3D Control Pad | |
@@ -160,7 +160,7 @@ Edit the list of virtual peripherals the adapters must present. ★ = today's SA
 | Original Xbox | standard controller | |
 
 Hardware variants:
-- [ ] ★ Every revision whose standard controller ports take detachable pads (regional and slim variants included; for the NES family that is the NES and the AV Famicom HVC-101, which takes its own detachable pads); the original Famicom HVC-001, whose pads are hard-wired, is excluded.
+- [x] ★ Every revision whose standard controller ports take detachable pads (regional and slim variants included; for the NES family that is the NES and the AV Famicom HVC-101, which takes its own detachable pads); the original Famicom HVC-001, whose pads are hard-wired, is excluded.
 - [ ] Other (list variants in/out): ________________
 
 ### B4 - Multitaps (SRS-SYS-010, SAD-P-013, SAD-O-015, ICD-CAP-020, ICD-VER-022)
@@ -210,8 +210,8 @@ Dreamcast rumble (Vibration Pack):
 | # | Feature | Where flagged | What IN adds | ★ | Your answer (IN / OUT) |
 |---|---|---|---|---|---|
 | C1 | Bluetooth input acquisition | SAD-F-001, SAD-O-003 (also SRS-PERF-001, ICD-PWR-001, SAD-COMP-HUB diagram) | Hub radio hardware, Bluetooth HID host stack, pairing UI, its own latency budget, radio EMC | OUT | OUT |
-| C2 | Racing wheels and pedals | SAD-F-001, SRS-IN-003 ("reserved") | see C2 block | see block | |
-| C3 | More than four players | SAD-F-001, PS-TIMING note | Raise the player, port and route ceilings everywhere (SRS-SYS-002/007/009, PS limits and HELLO fields, "four" in SAD and ICD); INPUT redesign (only five 32-byte records fit 192 bytes); recomputed cycle budget and latency; more hub USB ports and power; larger resource tables | OUT | |
+| C2 | Racing wheels and pedals | SAD-F-001, SRS-IN-003 ("reserved") | see C2 block | see block | IN |
+| C3 | More than four players | SAD-F-001, PS-TIMING note | Raise the player, port and route ceilings everywhere (SRS-SYS-002/007/009, PS limits and HELLO fields, "four" in SAD and ICD); INPUT redesign (only five 32-byte records fit 192 bytes); recomputed cycle budget and latency; more hub USB ports and power; larger resource tables | OUT | OUT |
 | C4 | "Remote control" | SAD-F-001 (never defined) | You define what is controlled, by whom, over which interface | OUT | OUT |
 | C5 | Automatic discovery of unknown nodes | SAD-F-002, SAD-R-003, PS-DISCOVERY | Collision-free broadcast enumeration of nodes that are not physically enabled (E17 covers the single enabled node) | OUT | |
 | C6 | Live coherent storage export while a console is active | SAD-F-002, SAD-P-006 | Snapshot and consistency protocol for a running console | OUT | |
@@ -453,7 +453,7 @@ Today: the bus is physically trusted, CRC is not authentication, anyone on the b
 
 ### E17 - Commissioning workflow (SAD-P-003, PS-DISCOVERY)
 Today the hub must be given an adapter's 128-bit UID ("scanned or manually supplied") and one adapter is physically enabled at a time; no document says how the UID gets into the hub. Typing 32 hex characters with four buttons is impractical, and unknown-node discovery is Future (C5).
-- [ ] A. ★ Discovery of the single enabled node: the hub UI offers "add adapter"; the hub sends DISCOVER_UID with an all-zero UID, and only a node whose commissioning enable is asserted answers (wire change; collision-free because exactly one node is enabled, and two enabled nodes simply produce no valid reply, reported as such); the hub records the UID and address in its roster. HELLO still checks `expected_uid` afterwards.
+- [x] A. ★ Discovery of the single enabled node: the hub UI offers "add adapter"; the hub sends DISCOVER_UID with an all-zero UID, and only a node whose commissioning enable is asserted answers (wire change; collision-free because exactly one node is enabled, and two enabled nodes simply produce no valid reply, reported as such); the hub records the UID and address in its roster. HELLO still checks `expected_uid` afterwards.
 - [ ] B. UID typed on the hub's local controls.
 - [ ] C. UID delivered through the E3 path (PC tool or file); needs E3 = A or B.
 - [ ] D. A and C.
