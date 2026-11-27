@@ -11,7 +11,7 @@ tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$tools_dir/../.." && pwd)"
 cd "$root"
 
-docs=(docs/SRS.md docs/ICD.md docs/SAD.md docs/PS.md)
+docs=(docs/SRS.md docs/ICD.md docs/SAD.md docs/PS.md docs/AFS.md)
 set_name=RPN-specification-set
 out_dir=docs/pdf
 work_dir=build/pdf

@@ -3,16 +3,14 @@
 | Control field | Value |
 |---|---|
 | Document ID | RPN-RVP |
-| Revision | 0.1 |
+| Revision | 0.2 |
 | Status | Working process document - not an engineering specification |
-| Date | 2026-11-25 |
-| Applies to | [SRS](SRS.md), [ICD](ICD.md), [SAD](SAD.md), [PS](PS.md), [development guide](DEVELOPMENT-GUIDE.md) and [README](../README.md) |
-| First applied in | [REVIEW-001](reviews/REVIEW-001.md) |
+| Date | 2026-11-27 |
+| Applies to | [SRS](SRS.md), [ICD](ICD.md), [SAD](SAD.md), [PS](PS.md), [AFS](AFS.md) and [README](../README.md) |
 
-This guide makes a system-requirements review repeatable. It does not change any
-requirement or any specification's revision status. It supports Steps 1-2 of the
-[development guide](DEVELOPMENT-GUIDE.md) and should be repeated whenever the
-specifications change materially (see section 9).
+This guide makes a review of the specification set repeatable. It does not change any
+requirement or any specification's revision status. It is repeated for every new
+revision of the specifications and whenever they change materially (see section 9).
 
 ## 1. Objectives
 
@@ -27,7 +25,7 @@ A review shall establish, with evidence, whether the document set is:
 | RVO-5 | Electrically safe and plausible | Can each electrical interface be built without damaging original hardware or breaking console timing? |
 | RVO-6 | Console-faithful | Does the generic input/feedback model cover what each target console's controllers actually expose? |
 | RVO-7 | Platform-consistent | Do all documents follow the platform decision (currently the RP2350 family) and its real capabilities and errata? |
-| RVO-8 | Feasible | Do timing, resource and power budgets close with margin for the first prototype and the wider roadmap? |
+| RVO-8 | Feasible | Do timing, resource and power budgets close with margin for every console, peripheral and installation the specifications cover? |
 | RVO-9 | Verifiable | Does each requirement have an observable pass/fail method, and is it linked to a verification entry? |
 | RVO-10 | Controlled | Are document control, IDs, classification, companion lists and decision registers coherent and current? |
 
@@ -78,7 +76,7 @@ Run these checks; they are cheap and catch cost-effective errors early.
 | Identifiers | Every ID referenced is defined exactly once; retired IDs are not reused; each ID prefix is declared in the SRS identifier rule |
 | Terminology | One term per concept (player, port, route, endpoint, channel, node, adapter); consistent product and spelling variants |
 | Stale statements | Text that refers to a previous document count, a previous platform or a previous scope |
-| Classification | Every normative statement carries C/D/P/O/F or is in a document that states how its `shall` statements are classified |
+| Classification | Every normative statement carries its class (F or D) or is in a document that states how its `shall` statements are classified |
 
 ### Phase 3 - Traceability
 
@@ -172,9 +170,9 @@ Every remark has a unique ID `RR-<review number>-<sequence>` (for example
 | ID | `RR-nnn-ss` |
 | Title | One-line subject |
 | Locations | Document ID and section/ID for every place involved |
-| Category | **Correction** (contradiction or error), **Decision** (owner must choose), **Question** (evidence needed), **Future** (valid but out of current increment) - the categories already used in the development guide |
+| Category | **Correction** (contradiction or error), **Decision** (owner must choose), **Question** (evidence needed), **Enhancement** (a valid change proposed for a later revision) |
 | Severity | See section 6 |
-| Gate | The earliest step/gate this remark blocks (for example "Step 4: before connecting hardware") |
+| Blocks | The earliest activity this remark blocks (for example "connecting an adapter to a console") |
 | Remark | Stated as a question where possible, with the evidence that prompted it |
 | Suggested solution | The reviewer's proposal; may list options with a recommendation |
 | Owner response | Left empty by the reviewer: Accept / Modify / Reject / Defer, with the owner's answer |
@@ -184,7 +182,7 @@ Every remark has a unique ID `RR-<review number>-<sequence>` (for example
 
 | Severity | Meaning |
 |---|---|
-| S1 Blocker | Could damage original hardware, break a safety/ownership invariant, or invalidate a major architectural choice if not resolved; must be closed before the gate named |
+| S1 Blocker | Could damage original hardware, break a safety/ownership invariant, or invalidate a major architectural choice if not resolved; must be closed before the activity it blocks |
 | S2 Major | Contradiction or gap that will cause rework or a wrong implementation; close before the affected design work starts |
 | S3 Minor | Ambiguity, incomplete detail or traceability gap with a bounded cost |
 | S4 Editorial | Wording, naming, formatting, document control |
@@ -215,15 +213,16 @@ correction cycle.
    - update document control (date, change history, companion lists, README).
 3. The corrector fills in *Resolution* for each remark and lists any remark it
    could not apply, with the reason.
-4. Rejected remarks keep the owner's rationale; deferred remarks are copied to the
-   decision register or a future-scope entry with the gate they block.
+4. Rejected remarks keep the owner's rationale; deferred remarks are recorded in the
+   review's disposition table with the activity they block and are raised again in the
+   next review.
 
 ## 9. Re-review and exit criteria
 
 Re-review (a shorter pass) after each correction cycle, and a full review when any
 of the following occurs: a platform/silicon change, adding a console or a service,
 a protocol major/minor change, a measurement contradicting a document, or before
-each development-guide checkpoint that connects hardware.
+original hardware is first connected to a new adapter or hub design.
 
 For the re-review:
 
@@ -234,9 +233,9 @@ For the re-review:
 
 Exit criteria for a review cycle:
 
-- no S1 remark open for the next gate;
+- no S1 remark open for an activity about to start;
 - no unanswered remark;
-- every deferred remark has an owner, a gate and a register entry;
+- every deferred remark has an owner and the activity it blocks;
 - mechanical checks (Phase 2) and recomputation (Phase 4) pass.
 
 ## Appendix A - Review record template
@@ -256,7 +255,7 @@ Exit criteria for a review cycle:
 ## 2. Verified without remark
 ## 3. Remarks (grouped by theme; format per section 5 of RPN-RVP)
 ## 4. Disposition table (ID, owner decision, resolution, status)
-## 5. Open gates carried forward
+## 5. Deferred remarks carried forward
 ```
 
 ## Appendix B - Reference checks (starter scripts)
@@ -275,19 +274,25 @@ def crc32c(data):
 assert crc32c(b"123456789") == 0xE3069283
 
 def cobs(data):
-    out, idx, code = bytearray([0]), 0, 1
-    for b in data:
+    out, block = bytearray(), bytearray()
+    for i, b in enumerate(data):
         if b == 0:
-            out[idx] = code; idx = len(out); out.append(0); code = 1
+            out += bytes([len(block) + 1]) + block
+            block = bytearray()
         else:
-            out.append(b); code += 1
-            if code == 0xFF:
-                out[idx] = code; idx = len(out); out.append(0); code = 1
-    out[idx] = code
+            block.append(b)
+            if len(block) == 254:
+                out += bytes([0xFF]) + block
+                block = bytearray()
+                if i == len(data) - 1:
+                    return bytes(out)
+    out += bytes([len(block) + 1]) + block
     return bytes(out)
+
+assert cobs(bytes([1] * 254)) == bytes([0xFF] + [1] * 254)
 ```
 
-Slot-budget identities to recompute when timing changes (1 Mbit/s, 10 us/byte):
+Slot-budget identities to recompute when timing changes (8 Mbit/s, 1.25 us/byte):
 wire bytes = raw + ceil(raw / 254) + 1 delimiter; exchange time = request wire +
 latest response start + response wire + idle guard; timeout path = request wire +
 response timeout + idle guard. Compare every non-input timeout path with
