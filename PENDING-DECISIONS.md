@@ -190,16 +190,16 @@ Settled earlier by you: a memory accessory attached through the controller port 
 - [ ] Other: ________________
 
 (b) Rumble forwarding (consoles whose in-scope controller supports rumble: N64 with Rumble Pak, GameCube, PlayStation DualShock, PlayStation 2, Original Xbox):
-- [ ] ★ All of them.
+- [x] ★ All of them.
 - [ ] Only: ________________
 
 Dreamcast rumble (Vibration Pack):
 - [ ] ★ Not offered: the one memory accessory per port is the VMU (the pack needs its own expansion slot, see C17a).
 - [ ] Offered **instead of** the VMU, selectable per port (same configuration path as (a)).
-- [ ] Both on one port (needs C17a = IN).
+- [x] Both on one port (needs C17a = IN).
 
 (c) Which physical devices can receive rumble (generic HID parsing alone does not define an output path):
-- [ ] ★ Only devices that expose a standard HID output path the hub implements (haptics or physical-interface usages, listed in the SRS); any other device gets no rumble and a diagnostic result (SAD-FB-001 already requires this).
+- [x] ★ Only devices that expose a standard HID output path the hub implements (haptics or physical-interface usages, listed in the SRS); any other device gets no rumble and a diagnostic result (SAD-FB-001 already requires this).
 - [ ] A hub table of device-specific drivers (needs C10 = a named device list).
 - [ ] Rumble is not forwarded at all: the Feedback service, SRS-OWN-011 and the rumble parts of SAD-FB-001 are removed.
 
@@ -209,10 +209,10 @@ Dreamcast rumble (Vibration Pack):
 
 | # | Feature | Where flagged | What IN adds | ★ | Your answer (IN / OUT) |
 |---|---|---|---|---|---|
-| C1 | Bluetooth input acquisition | SAD-F-001, SAD-O-003 (also SRS-PERF-001, ICD-PWR-001, SAD-COMP-HUB diagram) | Hub radio hardware, Bluetooth HID host stack, pairing UI, its own latency budget, radio EMC | OUT | |
+| C1 | Bluetooth input acquisition | SAD-F-001, SAD-O-003 (also SRS-PERF-001, ICD-PWR-001, SAD-COMP-HUB diagram) | Hub radio hardware, Bluetooth HID host stack, pairing UI, its own latency budget, radio EMC | OUT | OUT |
 | C2 | Racing wheels and pedals | SAD-F-001, SRS-IN-003 ("reserved") | see C2 block | see block | |
 | C3 | More than four players | SAD-F-001, PS-TIMING note | Raise the player, port and route ceilings everywhere (SRS-SYS-002/007/009, PS limits and HELLO fields, "four" in SAD and ICD); INPUT redesign (only five 32-byte records fit 192 bytes); recomputed cycle budget and latency; more hub USB ports and power; larger resource tables | OUT | |
-| C4 | "Remote control" | SAD-F-001 (never defined) | You define what is controlled, by whom, over which interface | OUT | |
+| C4 | "Remote control" | SAD-F-001 (never defined) | You define what is controlled, by whom, over which interface | OUT | OUT |
 | C5 | Automatic discovery of unknown nodes | SAD-F-002, SAD-R-003, PS-DISCOVERY | Collision-free broadcast enumeration of nodes that are not physically enabled (E17 covers the single enabled node) | OUT | |
 | C6 | Live coherent storage export while a console is active | SAD-F-002, SAD-P-006 | Snapshot and consistency protocol for a running console | OUT | |
 | C7 | Separate adapter-framework specification | SAD-F-003, SAD section 9 | A fifth document, written before any driver exists to extract it from (SAD section 9 stays as design guidance either way) | OUT | |
@@ -221,7 +221,7 @@ Dreamcast rumble (Vibration Pack):
 | C10 | USB input devices beyond plain HID | SAD-F-005, SRS-IN-012, SAD-P-011 | see C10 block | see block | |
 | C11 | Dreamcast VMU screen on the hub display | SRS-UI-004, SAD-F-006, PS-SVC-DISPLAY | PS-SVC-DISPLAY becomes normative (opcode, service bit 6, CAPS kind 5), hub display of the VMU frames, VMU display function in the Dreamcast profile; rate: 10 frames per second per port (two polls each, X3). Needs D33 = display | IN | |
 | C12 | Mice and trackballs | SAD-F-007 | Pointer record with running counters, console mouse profiles | OUT | |
-| C13 | Keyboards | SAD-F-008 | Key-matrix / scan-code transport, LEDs | OUT | |
+| C13 | Keyboards | SAD-F-008 | Key-matrix / scan-code transport, LEDs | OUT | IN |
 | C14 | Motion and tilt | SAD-F-009 | New channels and units | OUT | |
 | C15 | Rich haptics / force feedback | SAD-F-010 | Effect model beyond two-magnitude rumble | OUT | |
 | C16 | Audio (microphones, headsets, buzzers) | SAD-F-011 | Audio path and bandwidth budget | OUT | |
@@ -233,7 +233,7 @@ Dreamcast rumble (Vibration Pack):
 ### C2 - Racing wheels and pedals
 - [ ] ★ OUT as devices and peripherals. The generic model keeps its steering and pedal axes (SRS-IN-002 is your confirmed requirement); no hub wheel class and no console wheel peripheral is specified.
 - [ ] OUT, and remove steering and pedal axes from the model (axes 6 and 7 become reserved zero; SRS-IN-002 and SRS-IN-003 change).
-- [ ] IN: hub parses USB HID wheels; adapters present console wheel peripherals for (consoles): ________________ ; clutch / shifter: yes / no.
+- [x] IN: hub parses USB HID wheels; adapters present console wheel peripherals for (consoles): ________________ ; clutch / shifter: yes / no.
 
 ### C8 - Network firmware update
 Touches SRS-NET-001 (confirmed, class C: it lists "update" among the network operations), SRS-UPD-001..004, SAD-F-004, SAD-O-008, SAD-PERSIST-001, PS opcode 0x60, service bit 5, CAPS kind 2, and E13.
@@ -390,42 +390,43 @@ Settled today (SAD-D-010): a removed or replaced device keeps its route; a repla
 - [ ] Add persistent logs and support export (needs hub storage and the E3 path).
 
 ### E9 - ESD, EMC, regulatory and electrical safety (SRS-ENV-001; ICD-VER-012 cannot run without it)
-- [ ] ★ Engineering targets, no certification claim: ESD per IEC 61000-4-2 level 3 (6 kV contact, 8 kV air) on every externally accessible connector (console, USB, bus, power); no emissions, immunity or marking requirement.
+- [x] ★ Engineering targets, no certification claim: ESD per IEC 61000-4-2 level 3 (6 kV contact, 8 kV air) on every externally accessible connector (console, USB, bus, power); no emissions, immunity or marking requirement.
 - [ ] As above plus emissions and immunity targets: ________________ (for example EN 55032 / EN 55035 class B).
 - [ ] Full regulatory compliance for: ________________ (CE / UKCA / FCC).
 - [ ] No requirement (ICD-VER-012 is dropped).
 
 Electrical safety (today "not selected"):
-- [ ] ★ All RPN equipment is low-voltage: 5 V DC from a certified external supply (E14); no mains voltage inside any RPN enclosure; no other electrical-safety standard is claimed.
+- [x] ★ All RPN equipment is low-voltage: 5 V DC from a certified external supply (E14); no mains voltage inside any RPN enclosure; no other electrical-safety standard is claimed.
 - [ ] Other: ________________
 
 ### E10 - Operating environment (SRS-ENV-002)
-- [ ] ★ Indoor domestic use; operating 5 to 40 degC, 20 to 80 % RH non-condensing; storage -20 to 60 degC.
+- [x] ★ Indoor domestic use; operating 5 to 40 degC, 20 to 80 % RH non-condensing; storage -20 to 60 degC.
 - [ ] Other: ________________
 
 ### E11 - Cost, size, enclosure (SRS-ENV-003)
-- [ ] ★ No requirement: SRS-ENV-003 is removed.
+- [x] ★ No requirement: SRS-ENV-003 is removed.
 - [ ] Targets: ________________
 
 ### E12 - Licensing and provenance (SRS-LIC-001)
-- [ ] ★ Clean-room rule: no console-vendor firmware, BIOS, keys or proprietary code in the repository; console behaviour is implemented from independently written code, public documentation and measurement; third-party code only with a recorded compatible licence; documentation sources listed in the reference register.
+- [x] ★ Clean-room rule: no console-vendor firmware, BIOS, keys or proprietary code in the repository; console behaviour is implemented from independently written code, public documentation and measurement; third-party code only with a recorded compatible licence; documentation sources listed in the reference register.
 - [ ] Other policy: ________________
 
 (The repository has no LICENSE file. The project's own licence is outside the specifications; tell me if you want it recorded.)
+I have no idea about licensing and what should be on the LICENSE file. Create one as you see fit for this context.
 
 ### E13 - Local recovery and debug access (ICD-DBG-001; PS RESET mode 1)
 Today recoverability is required, but the connector, the boot-entry procedure and the production debug policy are open.
 
 (a) Debug and programming connector on every node:
-- [ ] ★ 3-pin SWD (SWDIO, SWCLK, GND) on a 2.54 mm header or Tag-Connect footprint.
+- [x] ★ 3-pin SWD (SWDIO, SWCLK, GND) on a 2.54 mm header or Tag-Connect footprint.
 - [ ] Other: ________________
 
 (b) Recovery procedure:
-- [ ] ★ A recovery input held while power is applied keeps the application from enabling any console-facing output or bus transmitter and presents RECOVERY (STATUS state 5; ownership impossible); the image is restored over SWD with a debug probe; PS RESET mode 1 reboots into the same state. I add a recovery test to ICD-VER (corrupt image, restore, node returns to INHIBITED).
+- [x] ★ A recovery input held while power is applied keeps the application from enabling any console-facing output or bus transmitter and presents RECOVERY (STATUS state 5; ownership impossible); the image is restored over SWD with a debug probe; PS RESET mode 1 reboots into the same state. I add a recovery test to ICD-VER (corrupt image, restore, node returns to INHIBITED).
 - [ ] Additionally the RP2350 ROM USB bootloader through a service connector on every node (the hub's single USB controller is host-only behind the hub IC, so the hub would need a bypass).
 
 (c) Production debug policy:
-- [ ] ★ Debug stays enabled (no debug lock, no secure boot). If C8 = A, I specify a locked-debug policy instead.
+- [x] ★ Debug stays enabled (no debug lock, no secure boot). If C8 = A, I specify a locked-debug policy instead.
 - [ ] Other: ________________
 
 ### E14 - Power supplies (SAD-O-002 "adapter and hub supply units and distribution"; D21, D22)
@@ -447,7 +448,7 @@ Per-console mapping tables are profile content (B2). What is left for you:
 
 ### E16 - Security posture (SAD section 10; SAD-O-008 "future untrusted administration")
 Today: the bus is physically trusted, CRC is not authentication, anyone on the bus can impersonate the hub, and "future security decisions" are deferred.
-- [ ] ★ Confirm as the definitive posture: physically trusted bus, no authentication or encryption, no exposure outside the installation, update (if C8 is IN) gated by the physical update-enable. The "future decisions" wording goes; SAD section 10's trust and fault-model paragraphs stay.
+- [x] ★ Confirm as the definitive posture: physically trusted bus, no authentication or encryption, no exposure outside the installation, update (if C8 is IN) gated by the physical update-enable. The "future decisions" wording goes; SAD section 10's trust and fault-model paragraphs stay.
 - [ ] Require authentication of the hub to the nodes: needs key provisioning and management (a large addition; also changes C8).
 
 ### E17 - Commissioning workflow (SAD-P-003, PS-DISCOVERY)
