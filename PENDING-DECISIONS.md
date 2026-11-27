@@ -149,15 +149,15 @@ Edit the list of virtual peripherals the adapters must present. ★ = today's SA
 | Console | Virtual peripherals in scope (★ as listed) | Your changes |
 |---|---|---|
 | NES | standard pad | Add NES Max Controller |
-| SNES | standard pad | |
-| Mega Drive | 3-button and 6-button pads | |
-| Saturn | digital pad; 3D Control Pad | |
-| Nintendo 64 | standard controller | |
-| GameCube | standard controller | |
-| Dreamcast | standard controller | |
-| PlayStation | digital pad; DualShock | |
-| PlayStation 2 | DualShock 2 (pressure buttons: see C9) | |
-| Original Xbox | standard controller | |
+| SNES | standard pad | Add SNES Mouse |
+| Mega Drive | 3-button and 6-button pads | Add Sega Mega Mouse |
+| Saturn | digital pad; 3D Control Pad | Add Virtua Stick, Twin Stick, Sega Saturn Keyboard, Sega Saturn Mouse, Sega Arcade Racer |
+| Nintendo 64 | standard controller | Add N64 Fishing Rod, Steering wheel |
+| GameCube | standard controller | Add Keyboard, Steering wheel |
+| Dreamcast | standard controller | Add Dreamcast Arcade Stick, Fishing Controller, Sega Dreamcast Keyboard, Sega Dreamcast Mouse, Sega Race Controller |
+| PlayStation | digital pad; DualShock | Add Namco NeGcon, Namco Jogcon, PlayStation Mouse, Steering wheel |
+| PlayStation 2 | DualShock 2 (pressure buttons: see C9) | Add Steering Wheel |
+| Original Xbox | standard controller | Add Xbox Arcade Stick, Xbox Steering Wheel |
 
 Hardware variants:
 - [x] ★ Every revision whose standard controller ports take detachable pads (regional and slim variants included; for the NES family that is the NES and the AV Famicom HVC-101, which takes its own detachable pads); the original Famicom HVC-001, whose pads are hard-wired, is excluded.
@@ -171,12 +171,12 @@ future flag, so each row must become IN or OUT.
 
 | Console | Tap | Extra channels | ★ | Your answer (model / none) |
 |---|---|---|---|---|
-| NES | Four Score (uses both ports; 24-bit read with signature bits) | none | IN | |
-| SNES | Multitap | Data2 and IOBit per tapped port (baseline excludes them; IN needs the C21 carve-out) | none | |
-| Mega Drive | Sega Team Player or EA 4 Way Play (mutually incompatible; TR becomes a direction-controlled channel) | TR direction control | none (one model, both selectable, or none) | |
-| Saturn | Multitap (six slots, four used) | none | IN | |
-| PlayStation | Multitap (controller-port signals only) | none | IN | |
-| PlayStation 2 | Multitap (differs from the PlayStation's; may also use the memory-card slot, which is out of scope: unverified) | unverified | none | |
+| NES | Four Score (uses both ports; 24-bit read with signature bits) | none | IN | OUT |
+| SNES | Multitap | Data2 and IOBit per tapped port (baseline excludes them; IN needs the C21 carve-out) | none | IN |
+| Mega Drive | Sega Team Player or EA 4 Way Play (mutually incompatible; TR becomes a direction-controlled channel) | TR direction control | none (one model, both selectable, or none) | IN (Sega Team Player) |
+| Saturn | Multitap (six slots, four used) | none | IN | IN |
+| PlayStation | Multitap (controller-port signals only) | none | IN | IN |
+| PlayStation 2 | Multitap (differs from the PlayStation's; may also use the memory-card slot, which is out of scope: unverified) | unverified | none | IN |
 
 - [ ] No taps at all: the mechanism is removed (SRS-SYS-010, SAD-P-013, SAD-O-015, ICD-CAP-020 and ICD-VER-022 disappear); those consoles support only their native two ports.
 
@@ -185,7 +185,7 @@ Settled earlier by you: a memory accessory attached through the controller port 
 (N64 Controller Pak 32 KiB, Dreamcast VMU memory 128 KiB), one per emulated port.
 
 (a) N64 accessory slot - what the adapter presents on each port:
-- [ ] ★ Exactly one of Controller Pak, Rumble Pak (rumble forwarded to the physical device) or none, chosen per port in the adapter configuration (needs an end-user configuration path: E3 = A or B; with E3 = C or D the choice is fixed by the profile); default Controller Pak.
+- [x] ★ Exactly one of Controller Pak, Rumble Pak (rumble forwarded to the physical device) or none, chosen per port in the adapter configuration (needs an end-user configuration path: E3 = A or B; with E3 = C or D the choice is fixed by the profile); default Controller Pak.
 - [ ] Controller Pak only (no N64 rumble).
 - [ ] Other: ________________
 
@@ -213,39 +213,39 @@ Dreamcast rumble (Vibration Pack):
 | C2 | Racing wheels and pedals | SAD-F-001, SRS-IN-003 ("reserved") | see C2 block | see block | IN |
 | C3 | More than four players | SAD-F-001, PS-TIMING note | Raise the player, port and route ceilings everywhere (SRS-SYS-002/007/009, PS limits and HELLO fields, "four" in SAD and ICD); INPUT redesign (only five 32-byte records fit 192 bytes); recomputed cycle budget and latency; more hub USB ports and power; larger resource tables | OUT | OUT |
 | C4 | "Remote control" | SAD-F-001 (never defined) | You define what is controlled, by whom, over which interface | OUT | OUT |
-| C5 | Automatic discovery of unknown nodes | SAD-F-002, SAD-R-003, PS-DISCOVERY | Collision-free broadcast enumeration of nodes that are not physically enabled (E17 covers the single enabled node) | OUT | |
-| C6 | Live coherent storage export while a console is active | SAD-F-002, SAD-P-006 | Snapshot and consistency protocol for a running console | OUT | |
-| C7 | Separate adapter-framework specification | SAD-F-003, SAD section 9 | A fifth document, written before any driver exists to extract it from (SAD section 9 stays as design guidance either way) | OUT | |
-| C8 | Network firmware update | SRS-NET-001, SRS-UPD-001..004, SAD-F-004, SAD-O-008, PS-SVC-UPDATE | see C8 block | see block | |
-| C9 | Pressure-sensitive buttons (PS2 DualShock 2, Xbox analog buttons) | SAD-F-005, SAD-MAP-002/003 | A pressure field per INPUT record: record size, ACK, cycle budget and latency recomputed. OUT means a binary press is reported to a pressure-capable controller as full pressure and a release as zero; that is a documented lossy mapping the user approves (SRS-IN-007) | OUT | |
-| C10 | USB input devices beyond plain HID | SAD-F-005, SRS-IN-012, SAD-P-011 | see C10 block | see block | |
-| C11 | Dreamcast VMU screen on the hub display | SRS-UI-004, SAD-F-006, PS-SVC-DISPLAY | PS-SVC-DISPLAY becomes normative (opcode, service bit 6, CAPS kind 5), hub display of the VMU frames, VMU display function in the Dreamcast profile; rate: 10 frames per second per port (two polls each, X3). Needs D33 = display | IN | |
-| C12 | Mice and trackballs | SAD-F-007 | Pointer record with running counters, console mouse profiles | OUT | |
+| C5 | Automatic discovery of unknown nodes | SAD-F-002, SAD-R-003, PS-DISCOVERY | Collision-free broadcast enumeration of nodes that are not physically enabled (E17 covers the single enabled node) | OUT | IN |
+| C6 | Live coherent storage export while a console is active | SAD-F-002, SAD-P-006 | Snapshot and consistency protocol for a running console | OUT | IN |
+| C7 | Separate adapter-framework specification | SAD-F-003, SAD section 9 | A fifth document, written before any driver exists to extract it from (SAD section 9 stays as design guidance either way) | OUT | IN |
+| C8 | Network firmware update | SRS-NET-001, SRS-UPD-001..004, SAD-F-004, SAD-O-008, PS-SVC-UPDATE | see C8 block | see block | IN |
+| C9 | Pressure-sensitive buttons (PS2 DualShock 2, Xbox analog buttons) | SAD-F-005, SAD-MAP-002/003 | A pressure field per INPUT record: record size, ACK, cycle budget and latency recomputed. OUT means a binary press is reported to a pressure-capable controller as full pressure and a release as zero; that is a documented lossy mapping the user approves (SRS-IN-007) | OUT | IN |
+| C10 | USB input devices beyond plain HID | SAD-F-005, SRS-IN-012, SAD-P-011 | see C10 block | see block | OUT |
+| C11 | Dreamcast VMU screen on the hub display | SRS-UI-004, SAD-F-006, PS-SVC-DISPLAY | PS-SVC-DISPLAY becomes normative (opcode, service bit 6, CAPS kind 5), hub display of the VMU frames, VMU display function in the Dreamcast profile; rate: 10 frames per second per port (two polls each, X3). Needs D33 = display | IN | OUT (VMU screens will be added instead to the adapter reducing communication load) |
+| C12 | Mice and trackballs | SAD-F-007 | Pointer record with running counters, console mouse profiles | OUT | IN |
 | C13 | Keyboards | SAD-F-008 | Key-matrix / scan-code transport, LEDs | OUT | IN |
-| C14 | Motion and tilt | SAD-F-009 | New channels and units | OUT | |
-| C15 | Rich haptics / force feedback | SAD-F-010 | Effect model beyond two-magnitude rumble | OUT | |
-| C16 | Audio (microphones, headsets, buzzers) | SAD-F-011 | Audio path and bandwidth budget | OUT | |
-| C17 | Compound and linked accessories | SAD-F-012 | (a) several sub-peripherals per port, e.g. Dreamcast VMU plus vibration pack; (b) linked devices (N64 Transfer Pak, GBA link). Answer each | (a) OUT, (b) OUT | (a) ____ (b) ____ |
-| C18 | Controllers beyond the INPUT record (more than 32 buttons or 8 axes) | SAD-F-013 | Larger or second input record type. Bits 16..31 of `buttons` are reserved today, and C20 takes two of them | OUT | |
-| C19 | Several physical devices combined into one player | SAD-COMP-HUB ("future explicit policy") | Combination policy and conflict rules | OUT | |
-| C20 | Digital left / right trigger buttons (L2 / R2) in the generic model | SAD-MAP-002, PS-DATA-INPUT bits 16..31 ("earmarked for the schema freeze") | Buttons bits 16 and 17; mapping tables updated; no layout change | IN | |
+| C14 | Motion and tilt | SAD-F-009 | New channels and units | OUT | OUT |
+| C15 | Rich haptics / force feedback | SAD-F-010 | Effect model beyond two-magnitude rumble | OUT | IN |
+| C16 | Audio (microphones, headsets, buzzers) | SAD-F-011 | Audio path and bandwidth budget | OUT | OUT |
+| C17 | Compound and linked accessories | SAD-F-012 | (a) several sub-peripherals per port, e.g. Dreamcast VMU plus vibration pack; (b) linked devices (N64 Transfer Pak, GBA link). Answer each | (a) OUT, (b) OUT | (a) IN (VMU plus vibration pack) (b) OUT |
+| C18 | Controllers beyond the INPUT record (more than 32 buttons or 8 axes) | SAD-F-013 | Larger or second input record type. Bits 16..31 of `buttons` are reserved today, and C20 takes two of them | OUT | OUT |
+| C19 | Several physical devices combined into one player | SAD-COMP-HUB ("future explicit policy") | Combination policy and conflict rules | OUT | OUT |
+| C20 | Digital left / right trigger buttons (L2 / R2) in the generic model | SAD-MAP-002, PS-DATA-INPUT bits 16..31 ("earmarked for the schema freeze") | Buttons bits 16 and 17; mapping tables updated; no layout change | IN | IN |
 
 ### C2 - Racing wheels and pedals
 - [ ] ★ OUT as devices and peripherals. The generic model keeps its steering and pedal axes (SRS-IN-002 is your confirmed requirement); no hub wheel class and no console wheel peripheral is specified.
 - [ ] OUT, and remove steering and pedal axes from the model (axes 6 and 7 become reserved zero; SRS-IN-002 and SRS-IN-003 change).
-- [x] IN: hub parses USB HID wheels; adapters present console wheel peripherals for (consoles): ________________ ; clutch / shifter: yes / no.
+- [x] IN: hub parses USB HID wheels; adapters present console wheel peripherals for (consoles): see B3 ; clutch / shifter: yes / no.
 
 ### C8 - Network firmware update
 Touches SRS-NET-001 (confirmed, class C: it lists "update" among the network operations), SRS-UPD-001..004, SAD-F-004, SAD-O-008, SAD-PERSIST-001, PS opcode 0x60, service bit 5, CAPS kind 2, and E13.
 - [ ] A. IN, signed: full update profile (image format, RP2350 signed boot, anti-rollback, key management, OTP policy). Largest effort; irreversible OTP steps; it forces a locked-debug policy in E13.
-- [ ] B. ★ IN, integrity-checked: one concrete update profile - image header (target hardware ID, version, length, SHA-256), staging, verification, A/B slots with automatic rollback, activation only while the physical update-enable is asserted (trusted bus, E16), recovery through E13; no signatures and no OTP programming. This meets SRS-UPD-001 (compatibility and integrity checks; CRC is not called authentication) and keeps the confirmed SRS-NET-001 wording.
+- [x] B. ★ IN, integrity-checked: one concrete update profile - image header (target hardware ID, version, length, SHA-256), staging, verification, A/B slots with automatic rollback, activation only while the physical update-enable is asserted (trusted bus, E16), recovery through E13; no signatures and no OTP programming. This meets SRS-UPD-001 (compatibility and integrity checks; CRC is not called authentication) and keeps the confirmed SRS-NET-001 wording.
 - [ ] C. OUT: no network update; firmware is installed locally (E13). This **reverses** the class-C wording of SRS-NET-001. SRS-UPD-001/003/004, opcode 0x60, service bit 5 and CAPS kind 2 go (opcode and bit stay reserved); the reset protection of SRS-UPD-002 stays; it is the only choice compatible with E3 = D.
 
 Hub image: updated through the E3 path (A: PC tool; B: USB drive) or only locally through E13.
 
 ### C10 - USB input devices beyond plain HID
 SRS-IN-012 says devices needing console-specific protocols or authentication (it names Xbox 360/One, PlayStation 4/5 and Nintendo Switch pads) are Future. Class-driver and handshake needs differ per device, so the answer has two parts.
-- [ ] ★ Acceptance is by descriptor parsing only (D30): any device whose report descriptor parses under the D30 subset is accepted for input; a device that needs a vendor class driver or an initialisation handshake is not supported (Xbox 360/One, Switch Pro and similar). I reword SRS-IN-012 by what a device needs rather than by brand; a PlayStation 4/5 pad is then accepted if, and only if, it parses as HID (input only; no lights, no rumble).
+- [x] ★ Acceptance is by descriptor parsing only (D30): any device whose report descriptor parses under the D30 subset is accepted for input; a device that needs a vendor class driver or an initialisation handshake is not supported (Xbox 360/One, Switch Pro and similar). I reword SRS-IN-012 by what a device needs rather than by brand; a PlayStation 4/5 pad is then accepted if, and only if, it parses as HID (input only; no lights, no rumble).
 - [ ] A named list of device families, each with its own driver (answer per family: input / rumble): ________________
 - [ ] Plain HID only, and the listed brands are explicitly unsupported even if their descriptors parse.
 
@@ -253,7 +253,7 @@ SRS-IN-012 says devices needing console-specific protocols or authentication (it
 Stated today as "out of scope" or "excluded" (ICD-CAP-017/018, SRS-STO-005, SAD-D-009, SAD-MAP-003, SRS section 2, ICD-STO-001 table):
 light guns and specialist peripherals; video-synchronisation processing; analog electrical interfaces; accessory signals on extra connector pins (the SNES multitap's Data2 and IOBit are carved out if B4 makes it IN); motor-drive circuitry; memory cards in a dedicated slot (GameCube, PlayStation, PlayStation 2); the Original Xbox Memory Unit; Dreamcast VMU buzzer and clock (C11 covers only the screen); emulation of every peripheral ever sold.
 - [ ] ★ Confirmed: none of these is wanted.
-- [ ] Wanted (they become IN and need full specification): ________________
+- [x] Wanted (they become IN and need full specification): only for the devices listed in B3 and B4
 
 ---
 
@@ -265,43 +265,43 @@ already took; they only lose their "provisional" label. Blank = Y if the shortcu
 | # | Item (where) | Today | Y / new value |
 |---|---|---|---|
 | | **Bus and protocol** | | |
-| D1 | Physical layer (SRS-NET-003, SAD-P-001, ICD-NET-001) *owner* | Half-duplex RS-485, one master, 2 Mbit/s, 8N1 | |
-| D2 | Address space (SRS-SYS-007, PS-PROFILE) | Hub 0, adapters 1..31 | |
-| D3 | Installation limits (SRS-SYS-008, ICD-NET-001) *owner* | Up to 10 adapters on a trunk under 5 m. Today larger installs "need their own qualification"; ★ the specification states only this limit (31 stays the protocol address bound) | |
-| D4 | Frame and size limits (SAD-P-002, PS) | COBS + CRC-32C; payload at most 192 B; storage chunk 183 B; configuration at most 4096 B; CAPS list at most 64 entries; partial frame dropped after 3 ms | |
-| D5 | Retries (PS-TRANSACTION) | At most two exact retries (three attempts); INPUT never retried | |
-| D6 | Clock and baud accuracy (SRS-NET-010, ICD-NET-001; both marked "to be confirmed") | Crystal-derived, at most +/-100 ppm; total baud error at most +/-0.5 % per node | |
-| D7 | Termination and bias (ICD-NET-001: "decided by measurement") | ★ 120 ohm at both trunk ends, selectable on the node; bias at the hub only, values from the transceiver thresholds | |
+| D1 | Physical layer (SRS-NET-003, SAD-P-001, ICD-NET-001) *owner* | Half-duplex RS-485, one master, 2 Mbit/s, 8N1 | Y |
+| D2 | Address space (SRS-SYS-007, PS-PROFILE) | Hub 0, adapters 1..31 | Y |
+| D3 | Installation limits (SRS-SYS-008, ICD-NET-001) *owner* | Up to 10 adapters on a trunk under 5 m. Today larger installs "need their own qualification"; ★ the specification states only this limit (31 stays the protocol address bound) | Y |
+| D4 | Frame and size limits (SAD-P-002, PS) | COBS + CRC-32C; payload at most 192 B; storage chunk 183 B; configuration at most 4096 B; CAPS list at most 64 entries; partial frame dropped after 3 ms | Y |
+| D5 | Retries (PS-TRANSACTION) | At most two exact retries (three attempts); INPUT never retried | Y |
+| D6 | Clock and baud accuracy (SRS-NET-010, ICD-NET-001; both marked "to be confirmed") | Crystal-derived, at most +/-100 ppm; total baud error at most +/-0.5 % per node | Y |
+| D7 | Termination and bias (ICD-NET-001: "decided by measurement") | ★ 120 ohm at both trunk ends, selectable on the node; bias at the hub only, values from the transceiver thresholds | Y |
 | | **Timing and safety** | | |
-| D8 | Input cadence (SRS-PERF-002, PS-TIMING) | One INPUT with every configured record each 5 ms | |
-| D9 | Lease and guards (SRS-OWN-009, PS-TIMING) | Lease 100 ms; uncertain-revoke guard 110 ms; neutralisation at most 1 ms (declared per profile); neutral within 103 ms real time | |
-| D10 | Manual switch time (SRS-OWN-012) | At most 500 ms nominal | |
-| D11 | Latency (SRS-PERF-001/004/005) | Sample to installation at most 10 ms; after one lost INPUT 12 ms; end-to-end at most 16.7 ms at the 99.9th percentile | |
-| D12 | Fight-stick latency target (SAD-O-007) | Open; ★ same bounds as D11 (mappings, calibration and prompts: E15) | |
-| D13 | Response window (PS-TIMING; SAD-O-009 = unmeasured processing budget) | Driver off within 20 us; response starts 50 to 250 us after the request; idle guard at least 50 us; timeouts 1.0 ms (short) / 1.5 ms (long). ★ keep 250 us; bring-up measures it | |
-| D14 | Lease clock error (PS-TIMING) | At most +/-1 % | |
-| D15 | Feedback (PS-TIMING, PS-SVC-FEEDBACK) | Poll every 10 ms while armed (every cycle permitted); effect duration 1..100 ms | |
-| D16 | Automatic-selection policy (SAD-OWN-001, "P policy values") | Select when exactly one ready adapter is ACTIVE for 500 ms, all others INACTIVE, all status at most 500 ms old; release after 2 s inactive or 500 ms without fresh evidence | |
+| D8 | Input cadence (SRS-PERF-002, PS-TIMING) | One INPUT with every configured record each 5 ms | 1 ms cadence seems possible using Half-Duplex RS-485 Transceivers like the ISO3088 (also isolated for power domain separation between consoles) for improved perceived user latency |
+| D9 | Lease and guards (SRS-OWN-009, PS-TIMING) | Lease 100 ms; uncertain-revoke guard 110 ms; neutralisation at most 1 ms (declared per profile); neutral within 103 ms real time | Y |
+| D10 | Manual switch time (SRS-OWN-012) | At most 500 ms nominal | Y |
+| D11 | Latency (SRS-PERF-001/004/005) | Sample to installation at most 10 ms; after one lost INPUT 12 ms; end-to-end at most 16.7 ms at the 99.9th percentile | Y |
+| D12 | Fight-stick latency target (SAD-O-007) | Open; ★ same bounds as D11 (mappings, calibration and prompts: E15) | Y |
+| D13 | Response window (PS-TIMING; SAD-O-009 = unmeasured processing budget) | Driver off within 20 us; response starts 50 to 250 us after the request; idle guard at least 50 us; timeouts 1.0 ms (short) / 1.5 ms (long). ★ keep 250 us; bring-up measures it | Y |
+| D14 | Lease clock error (PS-TIMING) | At most +/-1 % | Y |
+| D15 | Feedback (PS-TIMING, PS-SVC-FEEDBACK) | Poll every 10 ms while armed (every cycle permitted); effect duration 1..100 ms | Y |
+| D16 | Automatic-selection policy (SAD-OWN-001, "P policy values") | Select when exactly one ready adapter is ACTIVE for 500 ms, all others INACTIVE, all status at most 500 ms old; release after 2 s inactive or 500 ms without fresh evidence | Y |
 | | **Platform, hub, power** | | |
-| D17 | MCU (SRS-HW-005, SAD-P-007) *owner* | RP2350 family, Arm cores only; RP2350A default; RP2350B only where a resource table shows the need; stacked-flash parts allowed | |
-| D18 | Margin rule (ICD-CON-001, SRS-STO-006) | No more than 70 % of any resource in the worst all-port combination | |
-| D19 | Original Xbox adapter (SAD-P-008, ICD-CAP-011) *owner* | Up to four USB device ports, one processor per port plus a gateway (may be one of them) | |
-| D20 | Hub USB (SAD-P-009, ICD-HUB-001) *owner* | Native controller behind a USB hub IC, at least four downstream ports, switched VBUS with overcurrent detection, 500 mA per port | |
-| D21 | Hub supply (ICD-HUB-001: "about 3 A, to be confirmed") | ★ External 5 V, at least 3 A (E14) | |
-| D22 | Power and isolation (SAD-P-010, ICD-PWR-002, ICD-HUB-001) *owner* | Each adapter externally powered; console power sense-only; isolated RS-485 (isolated transceiver and power) at every adapter **and at the hub** (ICD-HUB-001 already requires an isolated transceiver with isolated power and a default-disabled driver); deviations need an approved decision-record entry | |
-| D23 | Identity (SAD-P-003, PS-TRANSACTION) *owner* | 128-bit vendor UID in locked OTP, printed on a label; session ID from the hardware RNG with health check and persistent-counter fallback | |
-| D24 | Logic domain (ICD-CAP-002/003, SRS-HW-006) | 3.3 V; external translation and protection on every console-facing signal; no reliance on MCU 5 V tolerance or internal pulls | |
-| D25 | Translators on open-drain bidirectional lines (ICD-CAP-009: "unless measurement shows ...") | ★ Not used; direction-controlled or discrete open-drain structures are used | |
+| D17 | MCU (SRS-HW-005, SAD-P-007) *owner* | RP2350 family, Arm cores only; RP2350A default; RP2350B only where a resource table shows the need; stacked-flash parts allowed | Y (stacked-flash parts preferred) |
+| D18 | Margin rule (ICD-CON-001, SRS-STO-006) | No more than 70 % of any resource in the worst all-port combination | Y |
+| D19 | Original Xbox adapter (SAD-P-008, ICD-CAP-011) *owner* | Up to four USB device ports, one processor per port plus a gateway (may be one of them) | Y |
+| D20 | Hub USB (SAD-P-009, ICD-HUB-001) *owner* | Native controller behind a USB hub IC, at least four downstream ports, switched VBUS with overcurrent detection, 500 mA per port | Y |
+| D21 | Hub supply (ICD-HUB-001: "about 3 A, to be confirmed") | ★ External 5 V, at least 3 A (E14) | Y |
+| D22 | Power and isolation (SAD-P-010, ICD-PWR-002, ICD-HUB-001) *owner* | Each adapter externally powered; console power sense-only; isolated RS-485 (isolated transceiver and power) at every adapter **and at the hub** (ICD-HUB-001 already requires an isolated transceiver with isolated power and a default-disabled driver); deviations need an approved decision-record entry | Isolated RS-485 is a must have (see D8); Power should be provided by the console if possible or from the same source as the console (get ppower from the same DC source as in NES or SNES for example) |
+| D23 | Identity (SAD-P-003, PS-TRANSACTION) *owner* | 128-bit vendor UID in locked OTP, printed on a label; session ID from the hardware RNG with health check and persistent-counter fallback | Y |
+| D24 | Logic domain (ICD-CAP-002/003, SRS-HW-006) | 3.3 V; external translation and protection on every console-facing signal; no reliance on MCU 5 V tolerance or internal pulls | Y |
+| D25 | Translators on open-drain bidirectional lines (ICD-CAP-009: "unless measurement shows ...") | ★ Not used; direction-controlled or discrete open-drain structures are used | Y |
 | | **Ports, storage, input, UI** | | |
-| D26 | Ports and routes (SAD-P-005, SRS-IN-005) | One virtual controller per port plus, where the profile has one, its memory accessory; at most four routes; no fan-out | |
-| D27 | Accessory storage (SRS-STO-008, SAD-P-012, ICD-STO-001) *owner* | External SPI/QSPI FRAM, two banks plus select record (X1, E4), write-through, one device per port on a shared SPI bus, RAM only as a non-authoritative cache. Today also "MCU flash only as an approved exception"; ★ **remove that exception** (SRS-STO-008 says contents are not in MCU flash, and neither in-scope accessory needs it). Accessory data is then never dirty: `dirty_resources` stays in STATUS (no wire change), always 0 for accessories | |
-| D28 | Generic storage, configuration and update transfers (SAD-P-006) | Only in exclusive maintenance (conditional on E3 and C8) | |
-| D29 | Dreamcast sizing (ICD 8.2 / 8.3: "+4 presence, to be confirmed") | One presence/sense channel per port; ★ keep as the sizing assumption | |
-| D30 | Accepted USB input (SRS-IN-012, SAD-P-011) | HID gamepads and fight sticks with parseable report descriptors. ★ I specify the minimal HID subset (Generic Desktop game pad or joystick collections; Button page up to 32 buttons; X, Y, Z, Rx, Ry, Rz axes of 8 or 16 bits; hat switch; report IDs; padding) and an acceptance corpus of reference report descriptors by class (gamepad, fight stick, hat-only, 16-bit axes, with and without report IDs) in SRS-V-002, instead of the two named devices | |
-| D31 | Local selection and indication (SRS-UI-001) | Owner selection and owner / armed-neutral / fault indication, no external computer | |
-| D32 | Player assignment (SRS-UI-002) | User assigns players to routed ports. ★ full feature; the "fixed player n to port n" allowance goes | |
-| D33 | Hub display (SRS-UI-003: "should ... initial draft intent") | ★ "shall": display owner, routes and mapping with the console's own button names. No message carries names today (X5), so this needs a new CAPS kind (per combination, short UTF-8 labels for the generic positions it uses, paged by index and bounded; a wire addition I design). Alternative: generic labels only (no wire change; the console-name part of SRS-UI-003 goes) | |
-| D34 | Verification parameters (ICD-VER, ICD-STO-001) | 10-minute soak durations (ICD-VER-010/017/018, SRS-V-007); 0.3 V output noise margin (ICD-VER-003, a proposed default a profile may tighten); endurance worked example of one write per ms for ten years (each profile states its own worst-case write rate) | |
+| D26 | Ports and routes (SAD-P-005, SRS-IN-005) | One virtual controller per port plus, where the profile has one, its memory accessory; at most four routes; no fan-out | Y |
+| D27 | Accessory storage (SRS-STO-008, SAD-P-012, ICD-STO-001) *owner* | External SPI/QSPI FRAM, two banks plus select record (X1, E4), write-through, one device per port on a shared SPI bus, RAM only as a non-authoritative cache. Today also "MCU flash only as an approved exception"; ★ **remove that exception** (SRS-STO-008 says contents are not in MCU flash, and neither in-scope accessory needs it). Accessory data is then never dirty: `dirty_resources` stays in STATUS (no wire change), always 0 for accessories | Y |
+| D28 | Generic storage, configuration and update transfers (SAD-P-006) | Only in exclusive maintenance (conditional on E3 and C8) | Y |
+| D29 | Dreamcast sizing (ICD 8.2 / 8.3: "+4 presence, to be confirmed") | One presence/sense channel per port; ★ keep as the sizing assumption | Y |
+| D30 | Accepted USB input (SRS-IN-012, SAD-P-011) | HID gamepads and fight sticks with parseable report descriptors. ★ I specify the minimal HID subset (Generic Desktop game pad or joystick collections; Button page up to 32 buttons; X, Y, Z, Rx, Ry, Rz axes of 8 or 16 bits; hat switch; report IDs; padding) and an acceptance corpus of reference report descriptors by class (gamepad, fight stick, hat-only, 16-bit axes, with and without report IDs) in SRS-V-002, instead of the two named devices | Y |
+| D31 | Local selection and indication (SRS-UI-001) | Owner selection and owner / armed-neutral / fault indication, no external computer | Y |
+| D32 | Player assignment (SRS-UI-002) | User assigns players to routed ports. ★ full feature; the "fixed player n to port n" allowance goes | Y |
+| D33 | Hub display (SRS-UI-003: "should ... initial draft intent") | ★ "shall": display owner, routes and mapping with the console's own button names. No message carries names today (X5), so this needs a new CAPS kind (per combination, short UTF-8 labels for the generic positions it uses, paged by index and bounded; a wire addition I design). Alternative: generic labels only (no wire change; the console-name part of SRS-UI-003 goes) | Better solution: hub will have a display to show hub local information only, and each adapter will also have their own display with console specific language. |
+| D34 | Verification parameters (ICD-VER, ICD-STO-001) | 10-minute soak durations (ICD-VER-010/017/018, SRS-V-007); 0.3 V output noise margin (ICD-VER-003, a proposed default a profile may tighten); endurance worked example of one write per ms for ten years (each profile states its own worst-case write rate) | Y |
 
 ---
 
@@ -312,14 +312,14 @@ Today open in ICD-NET-002: connector and pinout, cable rating, allowable voltage
 
 | Item | ★ | Your answer |
 |---|---|---|
-| Connector | none. Options: (a) shielded RJ45 8P8C - cheap and common, but it looks like Ethernet (accidental connection, passive PoE), so it needs distinct labelling and overvoltage protection on the bus pins; (b) M12 A-coded 5-pin or M8 4-pin - keyed, locking, unambiguous, dearer; (c) other | |
-| Topology | Daisy chain, two connectors per node wired straight through inside the node: trunk continuity does not depend on node power; unplugging a cable interrupts the trunk (documented limit); the internal stub from the through-wiring to the transceiver is kept short (I derive the figure from the 2 Mbit/s edge rate) | |
-| Conductors | NET_P and NET_N (one twisted pair); NET_REF kept as a bus-side reference tying the isolated transceivers' bus-side grounds together through a resistor at each node (never a console or adapter ground; the isolators keep it separate); shield; no power on the bus | |
-| Common-mode offset | Limited to the rated common-mode range of the isolated transceiver class (I state it as a requirement on the part) | |
-| Shield | Bonded to the enclosure at the hub only; at each adapter coupled through a capacitor with no DC path | |
-| Hot-plug | Connecting and disconnecting with the bus powered is allowed: surge protection and series resistance at the bus pins, transmitters default-disabled | |
-| Cable | Shielded twisted pair, 120 ohm nominal | |
-| Pinout | I assign it once the connector is chosen | |
+| Connector | none. Options: (a) shielded RJ45 8P8C - cheap and common, but it looks like Ethernet (accidental connection, passive PoE), so it needs distinct labelling and overvoltage protection on the bus pins; (b) M12 A-coded 5-pin or M8 4-pin - keyed, locking, unambiguous, dearer; (c) other | (a) |
+| Topology | Daisy chain, two connectors per node wired straight through inside the node: trunk continuity does not depend on node power; unplugging a cable interrupts the trunk (documented limit); the internal stub from the through-wiring to the transceiver is kept short (I derive the figure from the 2 Mbit/s edge rate) | To follow |
+| Conductors | NET_P and NET_N (one twisted pair); NET_REF kept as a bus-side reference tying the isolated transceivers' bus-side grounds together through a resistor at each node (never a console or adapter ground; the isolators keep it separate); shield; no power on the bus | Power is shared on the bus to power up the RS485 isolated transceiver bus sides. |
+| Common-mode offset | Limited to the rated common-mode range of the isolated transceiver class (I state it as a requirement on the part) | To follow |
+| Shield | Bonded to the enclosure at the hub only; at each adapter coupled through a capacitor with no DC path | To follow |
+| Hot-plug | Connecting and disconnecting with the bus powered is allowed: surge protection and series resistance at the bus pins, transmitters default-disabled |  |
+| Cable | Shielded twisted pair, 120 ohm nominal | Use RJ45 typical impedance |
+| Pinout | I assign it once the connector is chosen | RJ45 |
 
 ### E2 - Hub local hardware (ICD-HUB-001 "Local I/O"; SRS-UI-001..003)
 ICD-PWR-001 requires the hub resource budget (GPIO, PIO, DMA, interrupts, RAM) to be recorded
