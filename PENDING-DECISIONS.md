@@ -92,25 +92,25 @@ After the rework no row is P, O, F or Retired.
 ### A5 - SAD section 3 register and identifier prefixes (SAD-D decided, SAD-P provisional, SAD-O open, SAD-F future)
 Only decided entries survive the rework.
 - [ ] ★ Keep every surviving identifier unchanged (SAD-P-007 stays SAD-P-007); retitle the section "Design decisions"; the prefix letter becomes plain identifier text. No cross-reference changes.
-- [ ] Renumber survivors into SAD-D-xxx (new numbers), update every cross-reference in all four documents, never reuse the old numbers.
+- [x] Renumber survivors into SAD-xxx (new numbers), update every cross-reference in all four documents, never reuse the old numbers.
 
 ### A6 - docs/DEVELOPMENT-GUIDE.md (steps 0 to 8: review, prototype, expansion; "current position: Step 2")
-- [ ] ★ Delete it. Bring-up planning is written when source-code bring-up starts. The document-control rule (date and one history line per change; regenerate PDFs) moves to the README.
+- [x] ★ Delete it. Bring-up planning is written when source-code bring-up starts. The document-control rule (date and one history line per change; regenerate PDFs) moves to the README.
 - [ ] Replace it with a short specification-maintenance guide (no steps, no prototype).
 - [ ] Keep it and only fix stale references.
 
 ### A7 - docs/REVIEW-PROCESS.md (RPN-RVP: review method, severities, "gate = development-guide step", RVO-8 "first prototype and wider roadmap")
-- [ ] ★ Keep as the review method for future revisions of the definitive specifications; remove step, gate, prototype and roadmap wording.
+- [x] ★ Keep as the review method for future revisions of the definitive specifications; remove step, gate, prototype and roadmap wording.
 - [ ] Delete it.
 
 ### A8 - docs/reviews/REVIEW-001.md (historical record; EIC references already scrubbed)
 - [ ] ★ Keep as a historical record; add a closing note ("closed by the definitive baseline"); no other change.
-- [ ] Delete it (git history keeps it).
+- [x] Delete it (git history keeps it).
 - [ ] Keep unchanged.
 
 ### A9 - Wire version (PS-PROFILE: "draft wire version major 0, minor 1"; header bytes `00 01`)
 Nothing implements the wire format yet, so any wire change is made in place.
-- [ ] ★ Wire version **1.0** (header `01 00`). I recompute PS-VECTOR-001 (CRC and COBS bytes), the PS-FRAME table, the HELLO / DISCOVER_UID version fields and every place that quotes the bootstrap minor, and check the result with the RPN-RVP Appendix B reference code.
+- [x] ★ Wire version **1.0** (header `01 00`). I recompute PS-VECTOR-001 (CRC and COBS bytes), the PS-FRAME table, the HELLO / DISCOVER_UID version fields and every place that quotes the bootstrap minor, and check the result with the RPN-RVP Appendix B reference code.
 - [ ] Keep **0.1** numerically; only the word "draft" goes. Valid only if every wire change in R6 is answered "no change"; the ★ answers of C11, C20, D33 and E17 change the wire, so "0.1" would then label a format that differs from today's 0.1 text.
 - [ ] Other: ________________
 
@@ -123,16 +123,16 @@ IN = fully covered by the specification set. OUT = removed from every document.
 
 | Console | ★ | Your answer (IN / OUT) |
 |---|---|---|
-| NES | IN | |
-| SNES | IN | |
-| Mega Drive | IN | |
-| Saturn | IN | |
-| Nintendo 64 | IN | |
-| GameCube | IN | |
-| Dreamcast | IN | |
-| PlayStation | IN | |
-| PlayStation 2 | IN | |
-| Original Xbox | IN | |
+| NES | IN | IN |
+| SNES | IN | IN |
+| Mega Drive | IN | IN |
+| Saturn | IN | IN |
+| Nintendo 64 | IN | IN |
+| GameCube | IN | IN |
+| Dreamcast | IN | IN |
+| PlayStation | IN | IN |
+| PlayStation 2 | IN | IN |
+| Original Xbox | IN | IN |
 
 ### B2 - Where console profiles live (ICD-CON-001 "supplements"; SRS-SYS-005; SAD-O-004; ICD-VER "needs supplement values")
 Today the ICD defines what a console profile must contain and a sizing baseline, but none of
@@ -140,7 +140,7 @@ the profiles exists, and several required values (neutralisation bound at the co
 connector, console response timing, storage access time) can only come from measurements on hardware.
 - [ ] ★ **Outside the set.** The ICD keeps the profile contract (ICD-CON-001), the sizing baseline (ICD-CAP, 8.2 to 8.5) and the verification entries; the risk inventory in ICD section 5 becomes "profile content requirements per family". Each profile is produced with its console driver during bring-up and is not listed as pending anywhere in the set.
   *Consequence:* "console IN" then means the system provides what a profile needs and verifies it, not that the set contains that console's electrical facts. SAD-O-004 (per-console MCU/PIO/USB split and timing limits), translator control lines (not counted in ICD 8.3), the ICD 8.4 dynamics, and the Original Xbox descriptor and authentication questions all become profile content requirements.
-- [ ] **Inside the set, as ICD annexes.** I write one annex per console now from public sources; measured values become requirements (limits), not results. Large effort; facts I cannot confirm publicly are listed for you (and F1 limits what can be stated).
+- [x] **Inside the set, as ICD annexes.** I write one annex per console now from public sources; measured values become requirements (limits), not results. Large effort; facts I cannot confirm publicly are listed for you (and F1 limits what can be stated).
 - [ ] **Inside the set, as separate documents** (one per console, each with its own PDF): same content as the annexes.
 
 ### B3 - Controller modes and variants (SAD-O-001 "exact hardware variants and first virtual peripherals"; SAD-MAP-002)
