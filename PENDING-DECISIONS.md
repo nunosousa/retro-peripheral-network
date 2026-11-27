@@ -219,7 +219,7 @@ Dreamcast rumble (Vibration Pack):
 | C8 | Network firmware update | SRS-NET-001, SRS-UPD-001..004, SAD-F-004, SAD-O-008, PS-SVC-UPDATE | see C8 block | see block | IN |
 | C9 | Pressure-sensitive buttons (PS2 DualShock 2, Xbox analog buttons) | SAD-F-005, SAD-MAP-002/003 | A pressure field per INPUT record: record size, ACK, cycle budget and latency recomputed. OUT means a binary press is reported to a pressure-capable controller as full pressure and a release as zero; that is a documented lossy mapping the user approves (SRS-IN-007) | OUT | IN |
 | C10 | USB input devices beyond plain HID | SAD-F-005, SRS-IN-012, SAD-P-011 | see C10 block | see block | OUT |
-| C11 | Dreamcast VMU screen on the hub display | SRS-UI-004, SAD-F-006, PS-SVC-DISPLAY | PS-SVC-DISPLAY becomes normative (opcode, service bit 6, CAPS kind 5), hub display of the VMU frames, VMU display function in the Dreamcast profile; rate: 10 frames per second per port (two polls each, X3). Needs D33 = display | IN | OUT (VMU screens will be added instead to the adapter reducing communication load) |
+| C11 | Dreamcast VMU screen on the hub display | SRS-UI-004, SAD-F-006, PS-SVC-DISPLAY | PS-SVC-DISPLAY becomes normative (opcode, service bit 6, CAPS kind 5), hub display of the VMU frames, VMU display function in the Dreamcast profile; rate: 10 frames per second per port (two polls each, X3). Needs D33 = display | IN | OUT (VMU screens will be added instead to the adapter reducing communication load eliminating need for PS-SVC-DISPLAY) |
 | C12 | Mice and trackballs | SAD-F-007 | Pointer record with running counters, console mouse profiles | OUT | IN |
 | C13 | Keyboards | SAD-F-008 | Key-matrix / scan-code transport, LEDs | OUT | IN |
 | C14 | Motion and tilt | SAD-F-009 | New channels and units | OUT | OUT |
@@ -265,22 +265,22 @@ already took; they only lose their "provisional" label. Blank = Y if the shortcu
 | # | Item (where) | Today | Y / new value |
 |---|---|---|---|
 | | **Bus and protocol** | | |
-| D1 | Physical layer (SRS-NET-003, SAD-P-001, ICD-NET-001) *owner* | Half-duplex RS-485, one master, 2 Mbit/s, 8N1 | Y |
+| D1 | Physical layer (SRS-NET-003, SAD-P-001, ICD-NET-001) *owner* | Half-duplex RS-485, one master, 2 Mbit/s, 8N1 | For speed see impact of D8. |
 | D2 | Address space (SRS-SYS-007, PS-PROFILE) | Hub 0, adapters 1..31 | Y |
 | D3 | Installation limits (SRS-SYS-008, ICD-NET-001) *owner* | Up to 10 adapters on a trunk under 5 m. Today larger installs "need their own qualification"; ★ the specification states only this limit (31 stays the protocol address bound) | Y |
 | D4 | Frame and size limits (SAD-P-002, PS) | COBS + CRC-32C; payload at most 192 B; storage chunk 183 B; configuration at most 4096 B; CAPS list at most 64 entries; partial frame dropped after 3 ms | Y |
 | D5 | Retries (PS-TRANSACTION) | At most two exact retries (three attempts); INPUT never retried | Y |
 | D6 | Clock and baud accuracy (SRS-NET-010, ICD-NET-001; both marked "to be confirmed") | Crystal-derived, at most +/-100 ppm; total baud error at most +/-0.5 % per node | Y |
-| D7 | Termination and bias (ICD-NET-001: "decided by measurement") | ★ 120 ohm at both trunk ends, selectable on the node; bias at the hub only, values from the transceiver thresholds | Y |
+| D7 | Termination and bias (ICD-NET-001: "decided by measurement") | ★ 120 ohm at both trunk ends, selectable on the node; bias at the hub only, values from the transceiver thresholds | See E1. Select typical RJ45 cable impedance |
 | | **Timing and safety** | | |
-| D8 | Input cadence (SRS-PERF-002, PS-TIMING) | One INPUT with every configured record each 5 ms | 1 ms cadence seems possible using Half-Duplex RS-485 Transceivers like the ISO3088 (also isolated for power domain separation between consoles) for improved perceived user latency |
+| D8 | Input cadence (SRS-PERF-002, PS-TIMING) | One INPUT with every configured record each 5 ms | 1 ms cadence seems possible using suitable high speed Half-Duplex RS-485 Transceivers like the ISO3088 (it also is isolated for power domain separation between consoles) for improved perceived user latency |
 | D9 | Lease and guards (SRS-OWN-009, PS-TIMING) | Lease 100 ms; uncertain-revoke guard 110 ms; neutralisation at most 1 ms (declared per profile); neutral within 103 ms real time | Y |
 | D10 | Manual switch time (SRS-OWN-012) | At most 500 ms nominal | Y |
-| D11 | Latency (SRS-PERF-001/004/005) | Sample to installation at most 10 ms; after one lost INPUT 12 ms; end-to-end at most 16.7 ms at the 99.9th percentile | Y |
+| D11 | Latency (SRS-PERF-001/004/005) | Sample to installation at most 10 ms; after one lost INPUT 12 ms; end-to-end at most 16.7 ms at the 99.9th percentile | Can be improved based on D8. |
 | D12 | Fight-stick latency target (SAD-O-007) | Open; ★ same bounds as D11 (mappings, calibration and prompts: E15) | Y |
 | D13 | Response window (PS-TIMING; SAD-O-009 = unmeasured processing budget) | Driver off within 20 us; response starts 50 to 250 us after the request; idle guard at least 50 us; timeouts 1.0 ms (short) / 1.5 ms (long). ★ keep 250 us; bring-up measures it | Y |
 | D14 | Lease clock error (PS-TIMING) | At most +/-1 % | Y |
-| D15 | Feedback (PS-TIMING, PS-SVC-FEEDBACK) | Poll every 10 ms while armed (every cycle permitted); effect duration 1..100 ms | Y |
+| D15 | Feedback (PS-TIMING, PS-SVC-FEEDBACK) | Poll every 10 ms while armed (every cycle permitted); effect duration 1..100 ms | Can be improved as consequence of D8. |
 | D16 | Automatic-selection policy (SAD-OWN-001, "P policy values") | Select when exactly one ready adapter is ACTIVE for 500 ms, all others INACTIVE, all status at most 500 ms old; release after 2 s inactive or 500 ms without fresh evidence | Y |
 | | **Platform, hub, power** | | |
 | D17 | MCU (SRS-HW-005, SAD-P-007) *owner* | RP2350 family, Arm cores only; RP2350A default; RP2350B only where a resource table shows the need; stacked-flash parts allowed | Y (stacked-flash parts preferred) |
@@ -288,7 +288,7 @@ already took; they only lose their "provisional" label. Blank = Y if the shortcu
 | D19 | Original Xbox adapter (SAD-P-008, ICD-CAP-011) *owner* | Up to four USB device ports, one processor per port plus a gateway (may be one of them) | Y |
 | D20 | Hub USB (SAD-P-009, ICD-HUB-001) *owner* | Native controller behind a USB hub IC, at least four downstream ports, switched VBUS with overcurrent detection, 500 mA per port | Y |
 | D21 | Hub supply (ICD-HUB-001: "about 3 A, to be confirmed") | ★ External 5 V, at least 3 A (E14) | Y |
-| D22 | Power and isolation (SAD-P-010, ICD-PWR-002, ICD-HUB-001) *owner* | Each adapter externally powered; console power sense-only; isolated RS-485 (isolated transceiver and power) at every adapter **and at the hub** (ICD-HUB-001 already requires an isolated transceiver with isolated power and a default-disabled driver); deviations need an approved decision-record entry | Isolated RS-485 is a must have (see D8); Power should be provided by the console if possible or from the same source as the console (get ppower from the same DC source as in NES or SNES for example) |
+| D22 | Power and isolation (SAD-P-010, ICD-PWR-002, ICD-HUB-001) *owner* | Each adapter externally powered; console power sense-only; isolated RS-485 (isolated transceiver and power) at every adapter **and at the hub** (ICD-HUB-001 already requires an isolated transceiver with isolated power and a default-disabled driver); deviations need an approved decision-record entry | Isolated RS-485 is a must have (see D8); Power to the adapter should be provided by the respective console if possible or from the same source as the console (get power from the same DC source as in NES or SNES for example). Adapter's RPN side of the RS485 transceiver is powered by the distributed hub power supply. |
 | D23 | Identity (SAD-P-003, PS-TRANSACTION) *owner* | 128-bit vendor UID in locked OTP, printed on a label; session ID from the hardware RNG with health check and persistent-counter fallback | Y |
 | D24 | Logic domain (ICD-CAP-002/003, SRS-HW-006) | 3.3 V; external translation and protection on every console-facing signal; no reliance on MCU 5 V tolerance or internal pulls | Y |
 | D25 | Translators on open-drain bidirectional lines (ICD-CAP-009: "unless measurement shows ...") | ★ Not used; direction-controlled or discrete open-drain structures are used | Y |
@@ -300,7 +300,7 @@ already took; they only lose their "provisional" label. Blank = Y if the shortcu
 | D30 | Accepted USB input (SRS-IN-012, SAD-P-011) | HID gamepads and fight sticks with parseable report descriptors. ★ I specify the minimal HID subset (Generic Desktop game pad or joystick collections; Button page up to 32 buttons; X, Y, Z, Rx, Ry, Rz axes of 8 or 16 bits; hat switch; report IDs; padding) and an acceptance corpus of reference report descriptors by class (gamepad, fight stick, hat-only, 16-bit axes, with and without report IDs) in SRS-V-002, instead of the two named devices | Y |
 | D31 | Local selection and indication (SRS-UI-001) | Owner selection and owner / armed-neutral / fault indication, no external computer | Y |
 | D32 | Player assignment (SRS-UI-002) | User assigns players to routed ports. ★ full feature; the "fixed player n to port n" allowance goes | Y |
-| D33 | Hub display (SRS-UI-003: "should ... initial draft intent") | ★ "shall": display owner, routes and mapping with the console's own button names. No message carries names today (X5), so this needs a new CAPS kind (per combination, short UTF-8 labels for the generic positions it uses, paged by index and bounded; a wire addition I design). Alternative: generic labels only (no wire change; the console-name part of SRS-UI-003 goes) | Better solution: hub will have a display to show hub local information only, and each adapter will also have their own display with console specific language. |
+| D33 | Hub display (SRS-UI-003: "should ... initial draft intent") | ★ "shall": display owner, routes and mapping with the console's own button names. No message carries names today (X5), so this needs a new CAPS kind (per combination, short UTF-8 labels for the generic positions it uses, paged by index and bounded; a wire addition I design). Alternative: generic labels only (no wire change; the console-name part of SRS-UI-003 goes) | New proposed solution: hub will have a display to show hub local information only, and each adapter will also have their own display with console specific language and information (i.e. Dreamcast will show VMU units display thus saving RS45 trafic and removing need for PS-SVC-DISPLAY). |
 | D34 | Verification parameters (ICD-VER, ICD-STO-001) | 10-minute soak durations (ICD-VER-010/017/018, SRS-V-007); 0.3 V output noise margin (ICD-VER-003, a proposed default a profile may tighten); endurance worked example of one write per ms for ten years (each profile states its own worst-case write rate) | Y |
 
 ---
@@ -313,10 +313,10 @@ Today open in ICD-NET-002: connector and pinout, cable rating, allowable voltage
 | Item | ★ | Your answer |
 |---|---|---|
 | Connector | none. Options: (a) shielded RJ45 8P8C - cheap and common, but it looks like Ethernet (accidental connection, passive PoE), so it needs distinct labelling and overvoltage protection on the bus pins; (b) M12 A-coded 5-pin or M8 4-pin - keyed, locking, unambiguous, dearer; (c) other | (a) |
-| Topology | Daisy chain, two connectors per node wired straight through inside the node: trunk continuity does not depend on node power; unplugging a cable interrupts the trunk (documented limit); the internal stub from the through-wiring to the transceiver is kept short (I derive the figure from the 2 Mbit/s edge rate) | To follow |
+| Topology | Daisy chain, two connectors per node wired straight through inside the node: trunk continuity does not depend on node power; unplugging a cable interrupts the trunk (documented limit); the internal stub from the through-wiring to the transceiver is kept short (I derive the figure from the 2 Mbit/s edge rate) | Accept. |
 | Conductors | NET_P and NET_N (one twisted pair); NET_REF kept as a bus-side reference tying the isolated transceivers' bus-side grounds together through a resistor at each node (never a console or adapter ground; the isolators keep it separate); shield; no power on the bus | Power is shared on the bus to power up the RS485 isolated transceiver bus sides. |
-| Common-mode offset | Limited to the rated common-mode range of the isolated transceiver class (I state it as a requirement on the part) | To follow |
-| Shield | Bonded to the enclosure at the hub only; at each adapter coupled through a capacitor with no DC path | To follow |
+| Common-mode offset | Limited to the rated common-mode range of the isolated transceiver class (I state it as a requirement on the part) | Accept. |
+| Shield | Bonded to the enclosure at the hub only; at each adapter coupled through a capacitor with no DC path | Accept. |
 | Hot-plug | Connecting and disconnecting with the bus powered is allowed: surge protection and series resistance at the bus pins, transmitters default-disabled |  |
 | Cable | Shielded twisted pair, 120 ohm nominal | Use RJ45 typical impedance |
 | Pinout | I assign it once the connector is chosen | RJ45 |
@@ -327,11 +327,11 @@ in ICD-HUB-001; it is not, because the local I/O is undefined. I compute the bud
 
 | Item | ★ | Your answer |
 |---|---|---|
-| Local controls (owner selection, player assignment, mapping prompts, approvals) | Four buttons: up, down, select, back | |
-| Display | Monochrome graphic 128 x 64 (OLED/LCD class, I2C or SPI), two pages: status and mapping (owner, routes, console button names), and VMU screens | |
-| VMU screens (C11) | Up to four 48 x 32 frames in a 2 x 2 grid (96 x 64 at 1x fits the display); shown only when the owner presents VMUs | |
-| Indicators | Three LEDs: power, armed, fault | |
-| Recovery / boot input | One button (E13) | |
+| Local controls (owner selection, player assignment, mapping prompts, approvals) | Four buttons: up, down, select, back | Accept. |
+| Display | Monochrome graphic 128 x 64 (OLED/LCD class, I2C or SPI), two pages: status and mapping (owner, routes, console button names), and VMU screens | Color LCD screen. No need for VMU screen (see D33). |
+| VMU screens (C11) | Up to four 48 x 32 frames in a 2 x 2 grid (96 x 64 at 1x fits the display); shown only when the owner presents VMUs | See D33. |
+| Indicators | Three LEDs: power, armed, fault | On screen information is enough. |
+| Recovery / boot input | One button (E13) | Accept. |
 
 ### E3 - Management access path: who drives STORAGE, CONFIG and DIAGNOSTICS? - **no ★**
 The documents define how a memory image or configuration crosses the bus (PS-MAINTENANCE,
@@ -341,31 +341,31 @@ only requires "no external computer" for owner selection and for the owner / arm
 fault indication; SRS-SUP-001 is open. Local indication stays in every case.
 My lean (not a ★): A, because it also carries UID entry (E17) and image updates (C8).
 - [ ] A. A PC tool through a hub management port (UART/USB-serial bridge). Needs a hub management interface (connector, framing - the PS framing can be reused - and commands).
-- [ ] B. A USB flash drive on a hub downstream port: images, configuration and logs as files, driven from the hub's local controls. Needs a USB mass-storage host driver, a filesystem and file layout, and a port: a fifth downstream port, or a player port freed in maintenance (the hub IC has at least four). E7 helps (labels) but is not required. Mass-storage use is independent of C10, which is about input devices.
+- [x] B. A USB flash drive on a hub downstream port: images, configuration and logs as files, driven from the hub's local controls. Needs a USB mass-storage host driver, a filesystem and file layout, and a port: a fifth downstream port, or a player port freed in maintenance (the hub IC has at least four). E7 helps (labels) but is not required. Mass-storage use is independent of C10, which is about input devices.
 - [ ] C. Factory and diagnostic use only, over the debug interface (E13); no end-user import or export.
 - [ ] D. Remove the network Storage and Configuration services and the MAINTENANCE state: images stay local and are never transferred; configuration changes only by local means. Removes opcodes 0x30, 0x31, 0x40, CAPS kinds 1 and 3, service bits 2 and 3, SRS-STO-003/004 and the SAD-PERSIST-001 transfer text; the cycle-budget rows for management chunks are recomputed. SRS-STO-002 (console-side local access) and the reset-while-dirty protection of SRS-UPD-002 stay. Constraints: requires C8 = C (update uses MAINTENANCE); B5a becomes "fixed by the profile"; diagnostics are reachable only through local indicators (E8) and debug.
 
 ### E4 - Persistent media (SAD-O-005, SAD-PERSIST-001 "media policy is O", PS-DISCOVERY)
 (1) Where every node keeps its address and configuration, and the hub its roster, assignments and mapping approvals (SRS-CFG-002):
 - [ ] ★ MCU flash with a two-sector journal (SRS-STO-008 already allows adapter firmware and configuration in flash). Rules: written only while the node is INHIBITED, UNASSIGNED or in MAINTENANCE, never while armed; programming may stall instruction fetch for up to the sector-erase time, so each profile documents the console-visible effect (idle identity unanswered) or runs its console driver from RAM; the ASSIGN completion window of R10(a) covers the address write. The hub writes only in NO_OWNER or PREPARE.
-- [ ] A small FRAM or EEPROM on every node (one more part and its GPIO in every profile; no stall at all).
+- [x] A small FRAM or EEPROM on every node (one more part and its GPIO in every profile; no stall at all).
 - [ ] Other: ________________
 
 (2) Bank-select record of the accessory FRAM (X1: today it does not fit in the 512 kbit and 2 Mbit parts):
 - [ ] ★ The record lives in the adapter's configuration journal (MCU flash); the parts stay 512 kbit (N64) and 2 Mbit (Dreamcast). The bank flip is one journal write after the staged bank is verified; a power loss leaves the old or the new bank, never a mix.
-- [ ] The next FRAM densities (1 Mbit and 4 Mbit) with a mirrored, CRC-protected record in the spare space.
+- [x] The next FRAM densities (1 Mbit and 4 Mbit) with a mirrored, CRC-protected record in the spare space.
 
 (3) Accessory FRAM part:
-- [ ] ★ Specified by requirement, not part number: SPI/QSPI, 3.3 V, endurance at least 10^12 cycles, SPI at least 40 MHz, temperature range covering E10.
+- [x] ★ Specified by requirement, not part number: SPI/QSPI, 3.3 V, endurance at least 10^12 cycles, SPI at least 40 MHz, temperature range covering E10.
 - [ ] Name a reference part: ________________
 
 ### E5 - Automatic console selection (SRS-OWN-007/008, SAD-O-006, SAD-OWN-001)
 (a) Is automatic selection kept?
-- [ ] ★ Yes: opt-in, enabled from the hub's local controls (default: manual).
+- [x] ★ Yes: opt-in, enabled from the hub's local controls (default: manual).
 - [ ] No (manual selection only). STATUS keeps the `activity` byte for display unless you also remove SRS-OWN-008, in which case the byte goes (a wire change: STATUS response, cycle budget and figures recomputed).
 
 (b) If kept, what do ACTIVE / INACTIVE / UNKNOWN mean? Automatic selection needs every other adapter to be *known* INACTIVE (SAD-OWN-001), so the profiles cannot all be allowed to answer UNKNOWN.
-- [ ] ★ One generic rule for every profile: ACTIVE = console power sensed present and a valid poll of an emulated port seen within the last 100 ms; INACTIVE = console power sensed absent; UNKNOWN otherwise (no poll yet, or sensing unavailable). Power sensing is then required on every adapter (it is already in the GPIO budget, ICD 8.3).
+- [x] ★ One generic rule for every profile: ACTIVE = console power sensed present and a valid poll of an emulated port seen within the last 100 ms; INACTIVE = console power sensed absent; UNKNOWN otherwise (no poll yet, or sensing unavailable). Power sensing is then required on every adapter (it is already in the GPIO budget, ICD 8.3).
 - [ ] Each profile defines its own evidence (today's wording); automatic selection may be unusable for a profile that reports UNKNOWN.
 - [ ] Other numbers: ________________
 
@@ -375,18 +375,18 @@ Settled today (SAD-D-010): a removed or replaced device keeps its route; a repla
 (a) Late join:
 - [ ] ★ Only on explicit user action (release, ROUTES, ARM of the whole generation, which interrupts every player); never silently; no in-place amendment.
 - [ ] Automatically when a device connects (interrupts every player).
-- [ ] Add an in-place ROUTES amendment while armed (a PS change and a new safety analysis).
+- [x] Add an in-place ROUTES amendment while armed (a PS change and a new safety analysis).
 
 (b) Routes for players without a device:
 - [ ] ★ No: a route exists only for a player that has a device at ROUTES time.
-- [ ] Yes: routes are created for every port of the selected console, with a default source mask equal to the route's required controls; a device that supplies them resumes in place (needs the default-mask rule and changes the lossy-approval flow).
+- [x] Yes: routes are created for every port of the selected console, with a default source mask equal to the route's required controls; a device that supplies them resumes in place (needs the default-mask rule and changes the lossy-approval flow).
 
 ### E7 - Port binding of storage resources (SAD-O-011)
 - [ ] ★ No: resources stay opaque IDs; the profile gives them meaning (no wire change).
-- [ ] Yes: add a `port` field to CAPS kind 1 (wire change; useful if E3 = B and the hub labels "player 1 memory card"). Device-wide resources such as configuration read-back stay unbound.
+- [x] Yes: add a `port` field to CAPS kind 1 (wire change; useful if E3 = B and the hub labels "player 1 memory card"). Device-wide resources such as configuration read-back stay unbound.
 
 ### E8 - Field supportability (SRS-SUP-001)
-- [ ] ★ Bounded counters, STATUS/DIAGNOSTICS and local fault indicators only (what exists today); SRS-SUP-001 is removed. A user reaches diagnostics only through E3.
+- [x] ★ Bounded counters, STATUS/DIAGNOSTICS and local fault indicators only (what exists today); SRS-SUP-001 is removed. A user reaches diagnostics only through E3.
 - [ ] Add persistent logs and support export (needs hub storage and the E3 path).
 
 ### E9 - ESD, EMC, regulatory and electrical safety (SRS-ENV-001; ICD-VER-012 cannot run without it)
@@ -434,17 +434,17 @@ Today: each adapter is externally powered (SAD-P-010) and the hub takes an exter
 
 | Item | ★ | Your answer |
 |---|---|---|
-| Adapter input | 5 V DC +/-5 %, at least 1 A; each profile's budget stays within 70 % of it (D18) | |
-| Hub input | 5 V DC, at least 3 A (D21) | |
-| Connector | 5.5 x 2.1 mm barrel, centre-positive, on hub and adapters (cannot be mistaken for a data port); alternative: USB-C power-only | |
-| Protection | Reverse-polarity and overcurrent protection on every supply input (today only the hub) | |
-| Supply units | Certified off-the-shelf 5 V supplies (E9); RPN specifies no supply unit | |
+| Adapter input | 5 V DC +/-5 %, at least 1 A; each profile's budget stays within 70 % of it (D18) | See D22. |
+| Hub input | 5 V DC, at least 3 A (D21) | Accept. |
+| Connector | 5.5 x 2.1 mm barrel, centre-positive, on hub and adapters (cannot be mistaken for a data port); alternative: USB-C power-only |Hub power provided by USB-C connector. Adapter power provided by console controller port power if adequate or external power (see D22). |
+| Protection | Reverse-polarity and overcurrent protection on every supply input (today only the hub) | Reverse polarity protection required only when power supply connector is not keyed.|
+| Supply units | Certified off-the-shelf 5 V supplies (E9); RPN specifies no supply unit | Standard USB-C phone charger for hub with enough power. |
 
 ### E15 - Mapping, calibration and approvals (SAD-O-007 "final button mappings, analog calibration and compatibility prompts")
 Per-console mapping tables are profile content (B2). What is left for you:
-- (a) Remapping: [ ] ★ the user chooses only among the mapping IDs an adapter advertises; no free remapping. [ ] free remapping on the hub (needs a mapping editor and a new wire element).
-- (b) Calibration: [ ] ★ automatic - the centre is captured when a device connects, ranges come from the descriptor's logical limits; no calibration screen; dead zones, thresholds and hysteresis are adapter mapping data (SAD-MAP-001). [ ] a user calibration routine on the hub.
-- (c) Lossy-mapping approvals (SRS-IN-007): [ ] ★ asked once per device, route and mapping on the hub display with the local controls, stored in the hub (SRS-CFG-002), asked again when the mapping or the device changes (device identified by VID/PID and serial number when it has one). [ ] asked on every arming.
+- (a) Remapping: [ ] ★ the user chooses only among the mapping IDs an adapter advertises; no free remapping. [x] free remapping on the hub (needs a mapping editor and a new wire element).
+- (b) Calibration: [ ] ★ automatic - the centre is captured when a device connects, ranges come from the descriptor's logical limits; no calibration screen; dead zones, thresholds and hysteresis are adapter mapping data (SAD-MAP-001). [x] a user calibration routine on the hub.
+- (c) Lossy-mapping approvals (SRS-IN-007): [x] ★ asked once per device, route and mapping on the hub display with the local controls, stored in the hub (SRS-CFG-002), asked again when the mapping or the device changes (device identified by VID/PID and serial number when it has one). [ ] asked on every arming.
 
 ### E16 - Security posture (SAD section 10; SAD-O-008 "future untrusted administration")
 Today: the bus is physically trusted, CRC is not authentication, anyone on the bus can impersonate the hub, and "future security decisions" are deferred.
@@ -460,7 +460,7 @@ Today the hub must be given an adapter's 128-bit UID ("scanned or manually suppl
 
 ### E18 - Atomic installation across processors (X4; Original Xbox adapter)
 SRS-IN-008 requires all records of an update to be installed atomically, but a multi-processor adapter forwards them to the secondary processors one at a time over an internal link.
-- [ ] ★ Relax for multi-processor adapters: whole-set validation still precedes forwarding; installation is atomic per port; a forwarding failure on a port neutralises that port and raises fault 2; the profile bounds the skew between ports (each Xbox port is an independent USB controller, so cross-port coherence has no console-visible meaning).
+- [x] ★ Relax for multi-processor adapters: whole-set validation still precedes forwarding; installation is atomic per port; a forwarding failure on a port neutralises that port and raises fault 2; the profile bounds the skew between ports (each Xbox port is an independent USB controller, so cross-port coherence has no console-visible meaning).
 - [ ] Keep strict atomicity: two-phase staging with a common commit trigger over the internal link (adds a sync line and internal-link time inside the 250 us response window).
 
 ---
@@ -476,10 +476,10 @@ and ICD-REF-001 (no retrieval dates). A definitive specification must not turn a
 into an asserted fact: an unconfirmed console voltage, for example, is a hardware-damage risk.
 - [ ] ★ I research public primary sources during the rework (RP2350 datasheet and errata; console documentation where public) and populate ICD-PLAT-001 and ICD-REF-001 with revision and retrieval dates. Supported silicon: only the stepping in current production, with the errata that affect the interfaces and their mitigations. A console electrical fact I cannot confirm from a primary source is **not** stated as a fact: the specification then states what the profile must determine and verify (ICD-VER), and I list the fact for you. The ICD keeps only structural facts (channel counts, directions) that I can confirm.
 - [ ] No research now: every unverified value is removed from the specification as a fact and replaced by a profile requirement; ICD-REF-001 becomes a plain reference list; verification happens only through ICD-VER.
-- [ ] Keep the confidence flags (published / secondary / measured) inside the specification.
+- [x] Keep the confidence flags (published / secondary / measured) inside the specification.
 
 ### F2 - Golden vectors in the PS (PS section 9 lists "a complete codec vector suite" as an open gate)
-- [ ] ★ Add a vector appendix: one request and one response (and each error status) for every opcode and subcommand, generated by script and cross-checked with the RPN-RVP Appendix B reference code. Closes the gate.
+- [x] ★ Add a vector appendix: one request and one response (and each error status) for every opcode and subcommand, generated by script and cross-checked with the RPN-RVP Appendix B reference code. Closes the gate.
 - [ ] Keep only PS-VECTOR-001.
 
 ---
